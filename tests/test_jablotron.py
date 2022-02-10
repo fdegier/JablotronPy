@@ -1,7 +1,7 @@
 import os
 from unittest import TestCase
 
-from src.jablotronpy import Jablotron
+from jablotronpy.jablotronpy import Jablotron
 
 
 class TestJablotron(TestCase):
