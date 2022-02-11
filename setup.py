@@ -12,7 +12,7 @@ setuptools.setup(
     long_description=long_description,
     long_description_content_type="text/markdown",
     url="https://github.com/fdegier/JablotronPy",
-    packages=setuptools.find_packages(include="jablotronpy"),
+    packages=["jablotronpy"],
     python_requires=">=3.6",
     install_requires=["requests>=2.25.0"]
 )
