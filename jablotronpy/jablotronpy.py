@@ -63,8 +63,7 @@ class Jablotron:
                     print(data['errors'])
                 return False, None
             else:
-                return self._make_request(end_point=end_point, headers=headers, payload=payload,
-                    retry=True)
+                return self._make_request(end_point=end_point, headers=headers, payload=payload, retry=True)
         else:
             print(f"An unexpected error occurred")
             if data.__contains__('errors'):
@@ -123,6 +122,7 @@ class Jablotron:
         if status and data.__contains__('services'):
             return data["services"]
         raise Exception("Unable to retrieve services.")
+
     def get_sections(self, service_id: int, service_type="JA100") -> dict:
         """
         Function returns list or section for given service_id.
@@ -182,7 +182,6 @@ class Jablotron:
         if status and data.__contains__('states'):
             return data['states']
         raise Exception("Unable to retrieve thermo devices.")
-
 
     def get_keyboard_segments(self, service_id: int, service_type="JA100") -> dict:
         """
@@ -247,8 +246,8 @@ class Jablotron:
             return data['states']
         raise Exception("Unable to retrieve programmable gates.")
 
-    def get_service_history(self, service_id: int, date_from="", date_to="", event_id_from="",
-        event_id_to="", service_type = "JA100", limit=20) -> dict:
+    def get_service_history(self, service_id: int, date_from: str = "", date_to: str = "", event_id_from: str = "",
+                            event_id_to: str = "", service_type: str = "JA100", limit: int = 20) -> dict:
         """
         Function returns list or historical events for given service_id. By default it lists last
         20 events, but this limit can be enlarged and also query can be combined with date_from,
@@ -277,9 +276,10 @@ class Jablotron:
             ...
         }]
         """
-        payload_json={
+        payload_json = {
                 "limit": limit,
-                "service-id": service_id}
+                "service-id": service_id
+        }
         if date_from != "":
             payload_json.update({"date-from": date_from})
         if date_to != "":
