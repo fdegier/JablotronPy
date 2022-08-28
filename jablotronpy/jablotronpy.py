@@ -1,4 +1,3 @@
-import json
 from typing import Union, Any
 
 import requests
@@ -16,6 +15,7 @@ class Jablotron:
             "accept-encoding": "*",
             "Accept": "application/json",
             "Content-Type": "application/json",
+            'Accept-Language': 'en',
         }
         api_version = "1.9"
         self.base_url = f"https://api.jablonet.net/api/{api_version}/"
@@ -30,7 +30,7 @@ class Jablotron:
         session_id = self.get_session_id()
         self.headers['Cookie'] = f'PHPSESSID={session_id}'
 
-    def _make_request(self, end_point, headers, payload, retry=False) -> Union[bool, Any]:
+    def _make_request(self, end_point: str, headers: dict, payload: dict, retry: bool = False) -> Union[bool, Any]:
         """
         Internal function to handle the parsing of a request to the API
         :param end_point: End point of the API
@@ -41,32 +41,28 @@ class Jablotron:
         """
         r = requests.post(
             url=f"{self.base_url}{end_point}",
-            headers=headers,
-            data=payload
+            headers=self.headers,
+            json=payload
         )
 
-        # Using endpoint from older api version, latest mobile app using userAuthorize.json
-        if end_point == "login.json":
-            if r.ok:
-                data = r.json()
-                if data.__contains__('status'):
-                    return data['status'], data
-                return False, None
         data = r.json()
-        if r.ok and data.__contains__('data'):
-            return True, data['data']
-        if data['http-code'] == 401:
+        if r.ok:
+            if end_point == "userAuthorize.json":
+                return True, r.cookies.get("PHPSESSID")
+            return True, data["data"]
+
+        if data.get('http-code', 0) == 401:
             self.set_cookies()
             if retry:
                 print(f"Exhausted all retry options")
-                if data.__contains__('errors'):
+                if 'errors' in data:
                     print(data['errors'])
                 return False, None
             else:
                 return self._make_request(end_point=end_point, headers=headers, payload=payload, retry=True)
         else:
             print(f"An unexpected error occurred")
-            if data.__contains__('errors'):
+            if 'errors' in data:
                 print(data['errors'])
             return False, None
 
@@ -77,12 +73,13 @@ class Jablotron:
         :return: session_id
         """
         status, data = self._make_request(
-            end_point="login.json",
-            headers={**self.headers, **{'Content-Type': 'application/x-www-form-urlencoded'}},
+            end_point="userAuthorize.json",
+            headers=self.headers,
             payload=dict(login=self.username, password=self.password)
         )
-        if status and data.__contains__('session_id'):
-            return data["session_id"]
+
+        if status:
+            return data
         raise Exception("Unable to retrieve session_id.")
 
     def get_services(self):
@@ -117,13 +114,14 @@ class Jablotron:
         status, data = self._make_request(
             end_point="serviceListGet.json",
             headers=self.headers,
-            payload=json.dumps({"list-type": "EXTENDED", "visibility": "DEFAULT"})
+            payload={"list-type": "EXTENDED", "visibility": "DEFAULT"}
         )
-        if status and data.__contains__('services'):
+
+        if status and 'services' in data:
             return data["services"]
         raise Exception("Unable to retrieve services.")
 
-    def get_sections(self, service_id: int, service_type="JA100") -> dict:
+    def get_sections(self, service_id: int, service_type: str = "JA100") -> dict:
         """
         Function returns list or section for given service_id.
         Example of output:
@@ -139,16 +137,17 @@ class Jablotron:
         }]
         """
         status, data = self._make_request(
-            end_point=service_type + "/sectionsGet.json",
+            end_point=f"{service_type}/sectionsGet.json",
             headers=self.headers,
-            payload=json.dumps({
+            payload={
                 # Probably not necessary to contact device, unless section names are often changed
                 "connect-device": False,
                 "list-type": "FULL",
                 "service-id": service_id,
-                "service-states": False})
+                "service-states": False
+            }
         )
-        if status and data.__contains__('sections'):
+        if status and 'sections' in data:
             return data['sections']
         raise Exception("Unable to retrieve sections.")
 
@@ -171,19 +170,20 @@ class Jablotron:
         }]
         """
         status, data = self._make_request(
-            end_point=service_type + "/thermoDevicesGet.json",
+            end_point=f"{service_type}/thermoDevicesGet.json",
             headers=self.headers,
-            payload=json.dumps({
-                "connect-device": True, # Rather contact device to get actual values.
+            payload={
+                "connect-device": True,  # Rather contact device to get actual values.
                 "list-type": "FULL",
                 "service-id": service_id,
-                "service-states": False})
+                "service-states": False
+            }
         )
-        if status and data.__contains__('states'):
+        if status and 'states' in data:
             return data['states']
         raise Exception("Unable to retrieve thermo devices.")
 
-    def get_keyboard_segments(self, service_id: int, service_type="JA100") -> dict:
+    def get_keyboard_segments(self, service_id: int, service_type: str = "JA100") -> dict:
         """
         Function returns list or keyboard segments for given service_id.
         Output can contains various fields depending on your keyboard configuration:
@@ -208,16 +208,17 @@ class Jablotron:
         }]
         """
         status, data = self._make_request(
-            end_point=service_type + "/keyboardSegmentsGet.json",
+            end_point=f"{service_type}/keyboardSegmentsGet.json",
             headers=self.headers,
-            payload=json.dumps({
+            payload={
                 # Probably not necessary to contact device, unless keyboard are often changed/renamed.
                 "connect-device": False,
                 "list-type": "FULL",
                 "service-id": service_id,
-                "service-states": False})
+                "service-states": False
+            }
         )
-        if status and data.__contains__('keyboards'):
+        if status and 'keyboards' in data:
             return data['keyboards']
         raise Exception("Unable to retrieve keyboards segments")
 
@@ -234,15 +235,16 @@ class Jablotron:
         }]
         """
         status, data = self._make_request(
-            end_point=service_type + "/programmableGatesGet.json",
+            end_point=f"{service_type}/programmableGatesGet.json",
             headers=self.headers,
-            payload=json.dumps({
-                "connect-device": True, # Rather contact device to get actual values.
+            payload={
+                "connect-device": True,  # Rather contact device to get actual values.
                 "list-type": "FULL",
                 "service-id": service_id,
-                "service-states": False})
+                "service-states": False
+            }
         )
-        if status and data.__contains__('states'):
+        if status and 'states' in data:
             return data['states']
         raise Exception("Unable to retrieve programmable gates.")
 
@@ -281,19 +283,19 @@ class Jablotron:
                 "service-id": service_id
         }
         if date_from != "":
-            payload_json.update({"date-from": date_from})
+            payload_json["date-from"] = date_from
         if date_to != "":
-            payload_json.update({"date-to": date_to})
+            payload_json["date-to"] = date_to
         if event_id_from != "":
-            payload_json.update({"event-id-from": event_id_from})
+            payload_json["event-id-from"] = event_id_from
         if event_id_to != "":
-            payload_json.update({"event-id-to": event_id_to})
+            payload_json["event-id-to"] = event_id_to
 
         status, data = self._make_request(
-            end_point=service_type + "/eventHistoryGet.json",
+            end_point=f"{service_type}/eventHistoryGet.json",
             headers=self.headers,
-            payload=json.dumps(payload_json)
+            payload=payload_json
         )
-        if status and data.__contains__('events'):
+        if status and 'events' in data:
             return data['events']
         raise Exception("Unable to retrieve event history.")
