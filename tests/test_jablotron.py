@@ -13,16 +13,18 @@ class TestJablotron(TestCase):
         assert cookie.startswith("PHPSESSID=")
 
     def test_get_session_id(self):
-        session_id = self.jablotron.get_session_id()
+        session_id = self.jablotron.headers["Cookie"].split("=", 1)[1]
         assert len(session_id) == 26
         assert isinstance(session_id, str)
 
     def test_get_services(self):
         services = self.jablotron.get_services()
         assert isinstance(services, list)
-        assert "id" in services[0].keys()
+        assert "service-id" in services[0].keys()
 
-    def test_get_service_details(self):
-        service_details = self.jablotron.get_service_details(self.jablotron.get_services()[0]["id"])
-        assert isinstance(service_details, dict)
-        assert "service_data" in service_details["data"].keys()
+    def test_get_sections(self):
+        services = self.jablotron.get_services()
+        sections = self.jablotron.get_sections(service_id=services[1]["service-id"])
+        assert list(sections[0].keys()) == ['cloud-component-id', 'name', 'can-control', 'need-authorization',
+                                      'partial-arm-enabled']
+
