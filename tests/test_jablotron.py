@@ -5,7 +5,8 @@ from jablotronpy.jablotronpy import Jablotron
 
 
 class TestJablotron(TestCase):
-    jablotron = Jablotron(username=os.environ["TEST_JABLOTRON_USER"], password=os.environ["TEST_JABLOTRON_PASS"])
+    jablotron = Jablotron(username=os.environ["TEST_JABLOTRON_USER"], password=os.environ["TEST_JABLOTRON_PASS"],
+                          pin_code=os.environ["TEST_JABLOTRON_PIN"])
 
     def test_set_cookies(self):
         self.jablotron.set_cookies()
@@ -26,5 +27,4 @@ class TestJablotron(TestCase):
         services = self.jablotron.get_services()
         sections = self.jablotron.get_sections(service_id=services[1]["service-id"])
         assert list(sections[0].keys()) == ['cloud-component-id', 'name', 'can-control', 'need-authorization',
-                                      'partial-arm-enabled']
-
+                                            'partial-arm-enabled']

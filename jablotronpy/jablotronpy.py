@@ -4,7 +4,7 @@ import requests
 
 
 class Jablotron:
-    def __init__(self, username: str, password: str):
+    def __init__(self, username: str, password: str, pin_code: Union[str, int]):
         """
         :param username: Email address used for Jablotron
         :param password: Password used for Jablotron
@@ -21,6 +21,7 @@ class Jablotron:
         self.base_url = f"https://api.jablonet.net/api/{api_version}/"
         self.username = username
         self.password = password
+        self.pin_code = pin_code
 
     def set_cookies(self):
         """
@@ -124,6 +125,10 @@ class Jablotron:
     def get_sections(self, service_id: int, service_type: str = "JA100") -> dict:
         """
         Function returns list or section for given service_id.
+
+        :param service_id: ID of your service, this ID can be obtained from get_services()
+        :param service_type: Type of your service, type can be obtained from output of get_services()
+
         Example of output:
         [{
             'cloud-component-id': 'SEC-123456789',
@@ -151,7 +156,7 @@ class Jablotron:
             return data['sections']
         raise Exception("Unable to retrieve sections.")
 
-    def get_thermo_devices(self, service_id: int, service_type="JA100") -> dict:
+    def get_thermo_devices(self, service_id: int, service_type: str = "JA100") -> dict:
         """
         Function returns list of thermo devices for given service_id.
 
@@ -186,6 +191,10 @@ class Jablotron:
     def get_keyboard_segments(self, service_id: int, service_type: str = "JA100") -> dict:
         """
         Function returns list or keyboard segments for given service_id.
+
+        :param service_id: ID of your service, this ID can be obtained from get_services()
+        :param service_type: Type of your service, type can be obtained from output of get_services()
+
         Output can contains various fields depending on your keyboard configuration:
         [{
             'object-device-id': 'KBD-123456789',
@@ -222,9 +231,13 @@ class Jablotron:
             return data['keyboards']
         raise Exception("Unable to retrieve keyboards segments")
 
-    def get_programmable_gates(self, service_id: int, service_type="JA100") -> dict:
+    def get_programmable_gates(self, service_id: int, service_type: str = "JA100") -> dict:
         """
         Function returns list or PG for given service_id.
+
+        :param service_id: ID of your service, this ID can be obtained from get_services()
+        :param service_type: Type of your service, type can be obtained from output of get_services()
+
         Example of output:
         [{
             'cloud-component-id': 'PG-12345678',
@@ -299,3 +312,32 @@ class Jablotron:
         if status and 'events' in data:
             return data['events']
         raise Exception("Unable to retrieve event history.")
+
+    def control_component(self, service_id: int, component_id: str, state: str, service_type: str = "JA100"):
+        """
+        :param service_id: ID of your service, this ID can be obtained from get_services()
+        :param service_type: Type of your service, type can be obtained from output of get_services()
+        :param component_id:
+        :param state: Either ARM or DISARM
+        :return:
+        """
+        payload_json = {
+            "service-id": service_id,
+            "authorization": {"authorization-code": f"{self.pin_code}"},
+            "control-components": [{
+                "actions": dict(action="CONTROL-SECTION", value=state.upper()),
+                "component-id": component_id
+            }]
+        }
+
+        status, data = self._make_request(
+            end_point=f"{service_type}/controlComponent.json",
+            headers=self.headers,
+            payload=payload_json
+        )
+        if data.get("states") is not None:
+            for component in data["states"]:
+                if component["component-id"] == component_id and component["state"] == state.upper():
+                    return component
+
+        raise Exception("Unable to control component")
