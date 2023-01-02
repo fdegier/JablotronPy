@@ -2,6 +2,9 @@ from typing import Union, Any
 
 import requests
 
+class UnexpectedResponse(Exception):
+    """Specialization of exception for cases when request does note return expected data."""
+    pass
 
 class Jablotron:
     def __init__(self, username: str, password: str, pin_code: Union[str, int]):
@@ -81,7 +84,7 @@ class Jablotron:
 
         if status:
             return data
-        raise Exception("Unable to retrieve session_id.")
+        raise UnexpectedResponse("Unable to retrieve session_id.")
 
     def get_services(self):
         """
@@ -120,7 +123,7 @@ class Jablotron:
 
         if status and 'services' in data:
             return data["services"]
-        raise Exception("Unable to retrieve services.")
+        raise UnexpectedResponse("Unable to retrieve services.")
 
     def get_sections(self, service_id: int, service_type: str = "JA100") -> dict:
         """
@@ -154,7 +157,7 @@ class Jablotron:
         )
         if status and 'sections' in data:
             return data['sections']
-        raise Exception("Unable to retrieve sections.")
+        raise UnexpectedResponse("Unable to retrieve sections.")
 
     def get_thermo_devices(self, service_id: int, service_type: str = "JA100") -> dict:
         """
@@ -186,7 +189,7 @@ class Jablotron:
         )
         if status and 'states' in data:
             return data['states']
-        raise Exception("Unable to retrieve thermo devices.")
+        raise UnexpectedResponse("Unable to retrieve thermo devices.")
 
     def get_keyboard_segments(self, service_id: int, service_type: str = "JA100") -> dict:
         """
@@ -229,7 +232,7 @@ class Jablotron:
         )
         if status and 'keyboards' in data:
             return data['keyboards']
-        raise Exception("Unable to retrieve keyboards segments")
+        raise UnexpectedResponse("Unable to retrieve keyboards segments")
 
     def get_programmable_gates(self, service_id: int, service_type: str = "JA100") -> dict:
         """
@@ -259,7 +262,7 @@ class Jablotron:
         )
         if status and 'states' in data:
             return data['states']
-        raise Exception("Unable to retrieve programmable gates.")
+        raise UnexpectedResponse("Unable to retrieve programmable gates.")
 
     def get_service_history(self, service_id: int, date_from: str = "", date_to: str = "", event_id_from: str = "",
                             event_id_to: str = "", service_type: str = "JA100", limit: int = 20) -> dict:
@@ -311,7 +314,7 @@ class Jablotron:
         )
         if status and 'events' in data:
             return data['events']
-        raise Exception("Unable to retrieve event history.")
+        raise UnexpectedResponse("Unable to retrieve event history.")
 
     def control_component(self, service_id: int, component_id: str, state: str, service_type: str = "JA100"):
         """
@@ -340,4 +343,4 @@ class Jablotron:
                 if component["component-id"] == component_id and component["state"] == state.upper():
                     return component
 
-        raise Exception("Unable to control component")
+        raise UnexpectedResponse("Unable to control component")
