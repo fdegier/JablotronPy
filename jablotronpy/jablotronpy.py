@@ -2,9 +2,11 @@ from typing import Union, Any
 
 import requests
 
+
 class UnexpectedResponse(Exception):
     """Specialization of exception for cases when request does note return expected data."""
     pass
+
 
 class Jablotron:
     def __init__(self, username: str, password: str, pin_code: Union[str, int]):
@@ -152,11 +154,11 @@ class Jablotron:
                 "connect-device": False,
                 "list-type": "FULL",
                 "service-id": service_id,
-                "service-states": False
+                "service-states": True
             }
         )
         if status and 'sections' in data:
-            return data['sections']
+            return data
         raise UnexpectedResponse("Unable to retrieve sections.")
 
     def get_thermo_devices(self, service_id: int, service_type: str = "JA100") -> dict:
