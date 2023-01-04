@@ -25,6 +25,5 @@ class TestJablotron(TestCase):
 
     def test_get_sections(self):
         services = self.jablotron.get_services()
-        sections = self.jablotron.get_sections(service_id=services[1]["service-id"])
-        assert list(sections[0].keys()) == ['cloud-component-id', 'name', 'can-control', 'need-authorization',
-                                            'partial-arm-enabled']
+        sections = self.jablotron.get_sections(service_id=services[0]["service-id"])
+        assert list(sections.keys()) == ['service-states', 'states', 'sections']

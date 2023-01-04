@@ -149,11 +149,11 @@ class Jablotron:
                 "connect-device": False,
                 "list-type": "FULL",
                 "service-id": service_id,
-                "service-states": False
+                "service-states": True
             }
         )
         if status and 'sections' in data:
-            return data['sections']
+            return data
         raise Exception("Unable to retrieve sections.")
 
     def get_thermo_devices(self, service_id: int, service_type: str = "JA100") -> dict:
