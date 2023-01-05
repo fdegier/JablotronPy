@@ -261,8 +261,8 @@ class Jablotron:
                 "service-states": True
             }
         )
-        if status and 'states' in data:
-            return data['states']
+        if status and 'programmableGates' in data:
+            return data
         raise UnexpectedResponse("Unable to retrieve programmable gates.")
 
     def get_service_history(self, service_id: int, date_from: str = "", date_to: str = "", event_id_from: str = "",

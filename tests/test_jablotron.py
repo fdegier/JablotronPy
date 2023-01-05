@@ -25,14 +25,17 @@ class TestJablotron(TestCase):
 
     def test_get_sections(self):
         services = self.jablotron.get_services()
-        sections = self.jablotron.get_sections(service_id=services[0]["service-id"])
+        sections = self.jablotron.get_sections(service_id=services[1]["service-id"])
         assert list(sections.keys()) == ['service-states', 'states', 'sections']
 
-    def test_control_programmable_gate(self):
-        service_id = self.jablotron.get_services()[0]["service-id"]
+    def test_get_programmable_gates(self):
+        services = self.jablotron.get_services()
+        sections = self.jablotron.get_programmable_gates(service_id=services[1]["service-id"])
+        assert list(sections.keys()) == ['service-states', 'states', 'programmableGates']
 
-        pg_id = j.get_programmable_gates(service_id=service_id)[15]["cloud-component-id"]
-        state = "OFF"
-        data = self.jablotron.control_programmable_gate(service_id=service_id, component_id=pg_id, state=state)
+    def test_control_programmable_gate(self):
+        service_id = self.jablotron.get_services()[1]["service-id"]
+        pg_id = self.jablotron.get_programmable_gates(service_id=service_id)["states"][15]["cloud-component-id"]
+        data = self.jablotron.control_programmable_gate(service_id=service_id, component_id=pg_id, on=False)
         assert data["component-id"] == pg_id
-        assert data["state"] == state
+        assert data["state"] == "OFF"
