@@ -27,3 +27,12 @@ class TestJablotron(TestCase):
         services = self.jablotron.get_services()
         sections = self.jablotron.get_sections(service_id=services[0]["service-id"])
         assert list(sections.keys()) == ['service-states', 'states', 'sections']
+
+    def test_control_programmable_gate(self):
+        service_id = self.jablotron.get_services()[0]["service-id"]
+
+        pg_id = j.get_programmable_gates(service_id=service_id)[15]["cloud-component-id"]
+        state = "OFF"
+        data = self.jablotron.control_programmable_gate(service_id=service_id, component_id=pg_id, state=state)
+        assert data["component-id"] == pg_id
+        assert data["state"] == state

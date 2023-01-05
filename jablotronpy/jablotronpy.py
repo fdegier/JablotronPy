@@ -150,8 +150,7 @@ class Jablotron:
             end_point=f"{service_type}/sectionsGet.json",
             headers=self.headers,
             payload={
-                # Probably not necessary to contact device, unless section names are often changed
-                "connect-device": False,
+                "connect-device": True,
                 "list-type": "FULL",
                 "service-id": service_id,
                 "service-states": True
@@ -259,7 +258,7 @@ class Jablotron:
                 "connect-device": True,  # Rather contact device to get actual values.
                 "list-type": "FULL",
                 "service-id": service_id,
-                "service-states": False
+                "service-states": True
             }
         )
         if status and 'states' in data:
@@ -318,19 +317,30 @@ class Jablotron:
             return data['events']
         raise UnexpectedResponse("Unable to retrieve event history.")
 
-    def control_component(self, service_id: int, component_id: str, state: str, service_type: str = "JA100"):
+    def control_component(self, service_id: int, component_id: str, state: str, control_pg: bool = False,
+                          service_type: str = "JA100"):
         """
         :param service_id: ID of your service, this ID can be obtained from get_services()
         :param service_type: Type of your service, type can be obtained from output of get_services()
         :param component_id:
-        :param state: Either ARM or DISARM
+        :param control_pg:
+        :param state: For a section use either ARM or DISARM, for a PG use ON or OFF
         :return:
         """
+        if control_pg is True:
+            control_type = "CONTROL-PG"
+            if state == "ARM":
+                state = "ON"
+            elif state == "DISARM":
+                state = "OFF"
+        else:
+            control_type = "CONTROL-SECTION"
+
         payload_json = {
             "service-id": service_id,
             "authorization": {"authorization-code": f"{self.pin_code}"},
             "control-components": [{
-                "actions": dict(action="CONTROL-SECTION", value=state.upper()),
+                "actions": dict(action=control_type, value=state.upper()),
                 "component-id": component_id
             }]
         }
@@ -346,3 +356,31 @@ class Jablotron:
                     return component
 
         raise UnexpectedResponse("Unable to control component")
+
+    def control_programmable_gate(self, service_id: int, component_id: str, on: bool):
+        """
+        Arm or disarm a programmable gate
+        :param service_id: ID of your service, this ID can be obtained from get_services()
+        :param component_id: The ID of the section
+        :param on: Bool for arming or disarming
+        :return:
+        """
+        if on is True:
+            state = "ON"
+        else:
+            state = "OFF"
+        return self.control_component(service_id=service_id, component_id=component_id, state=state, control_pg=True)
+
+    def control_section(self, service_id: int, component_id: str, on: bool):
+        """
+        Arm or disarm a section
+        :param service_id: ID of your service, this ID can be obtained from get_services()
+        :param component_id: The ID of the section
+        :param on: Bool for arming or disarming
+        :return:
+        """
+        if on is True:
+            state = "ARM"
+        else:
+            state = "DISARM"
+        return self.control_component(service_id=service_id, component_id=component_id, state=state)
