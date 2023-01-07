@@ -1,1 +1,1 @@
-from .jablotronpy import Jablotron
+from .jablotronpy import Jablotron, UnexpectedResponse
