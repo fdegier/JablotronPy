@@ -36,7 +36,7 @@ class Jablotron:
         session_id = self.get_session_id()
         self.headers['Cookie'] = f'PHPSESSID={session_id}'
 
-    def _make_request(self, end_point: str, headers: dict, payload: dict, retry: bool = False) -> Union[bool, Any]:
+    def _make_request(self, end_point: str, headers: dict, payload: dict, retry: int = 0) -> Union[bool, Any]:
         """
         Internal function to handle the parsing of a request to the API
         :param end_point: End point of the API
@@ -59,13 +59,15 @@ class Jablotron:
 
         if data.get('http-code', 0) == 401:
             self.set_cookies()
-            if retry:
-                print(f"Exhausted all retry options")
+            if retry >= 3:
+                print(f"Exhausted all retry options, response:")
+                print(data.json())
                 if 'errors' in data:
                     print(data['errors'])
                 return False, None
             else:
-                return self._make_request(end_point=end_point, headers=headers, payload=payload, retry=True)
+                retry += 1
+                return self._make_request(end_point=end_point, headers=headers, payload=payload, retry=retry)
         else:
             print(f"An unexpected error occurred")
             if 'errors' in data:
