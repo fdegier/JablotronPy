@@ -55,7 +55,12 @@ class Jablotron:
         if r.ok:
             if end_point == "userAuthorize.json":
                 return True, r.cookies.get("PHPSESSID")
-            return True, data["data"]
+            if data.get('data') is not None:
+                return True, data["data"]
+            else:
+                print(f"Unexpected response from API:")
+                print(data)
+                return False, None
 
         if data.get('http-code', 0) == 401:
             self.set_cookies()
