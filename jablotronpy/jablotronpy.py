@@ -51,8 +51,8 @@ class Jablotron:
             json=payload
         )
 
-        data = r.json()
         if r.ok:
+            data = r.json()
             if end_point == "userAuthorize.json":
                 return True, r.cookies.get("PHPSESSID")
             if data.get('data') is not None:
@@ -62,6 +62,7 @@ class Jablotron:
                 print(data)
                 return False, None
 
+        data = r.json()
         if data.get('http-code', 0) == 401:
             self.set_cookies()
             if retry >= 3:
