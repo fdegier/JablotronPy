@@ -22,7 +22,7 @@ class Jablotron:
             "Content-Type": "application/json",
             'Accept-Language': 'en',
         }
-        api_version = "1.9"
+        api_version = "2.2"
         self.base_url = f"https://api.jablonet.net/api/{api_version}/"
         self.username = username
         self.password = password
