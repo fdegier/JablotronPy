@@ -3,3 +3,5 @@ build/
 dist/
 .idea
 *.egg-info
+**/__pycache__
+.env
