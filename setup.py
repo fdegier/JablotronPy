@@ -5,7 +5,7 @@ with open("README.md", "r", encoding="utf-8") as fh:
 
 setuptools.setup(
     name="JablotronPy",
-    version="0.6.0",
+    version="0.6.1",
     author="F. de Gier",
     author_email="freddegier@me.com",
     description="A client to interact with the Jablotron API to control Jablotron alarm systems",

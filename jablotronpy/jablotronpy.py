@@ -1,6 +1,9 @@
+import logging
 from typing import Union, Any
 
 import requests
+
+logger = logging.getLogger(__name__)
 
 
 class UnexpectedResponse(Exception):
@@ -58,26 +61,24 @@ class Jablotron:
             if data.get('data') is not None:
                 return True, data["data"]
             else:
-                print(f"Unexpected response from API:")
-                print(data)
+                logger.error(f"Unexpected response from API: {data}")
                 return False, None
 
         data = r.json()
         if data.get('http-code', 0) == 401:
             self.set_cookies()
             if retry >= 3:
-                print(f"Exhausted all retry options, response:")
-                print(data.json())
+                logger.error(f"Exhausted all retry options, response: {data.json()}")
                 if 'errors' in data:
-                    print(data['errors'])
+                    logger.error(data['errors'])
                 return False, None
             else:
                 retry += 1
                 return self._make_request(end_point=end_point, headers=headers, payload=payload, retry=retry)
         else:
-            print(f"An unexpected error occurred")
+            logger.error(f"An unexpected error occurred, status code: {r.status_code}")
             if 'errors' in data:
-                print(data['errors'])
+                logger.error(data['errors'])
             return False, None
 
     def get_session_id(self) -> str:
