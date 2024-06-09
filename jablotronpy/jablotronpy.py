@@ -77,9 +77,14 @@ class Jablotron:
                 return self._make_request(end_point=end_point, headers=headers, payload=payload, retry=retry)
         else:
             logger.error(f"An unexpected error occurred, status code: {r.status_code}")
-            if 'errors' in data:
-                logger.error(data['errors'])
-            return False, None
+            if retry >= 3:
+                logger.error(f"Exhausted all retry options, response: {data.json()}")
+                if 'errors' in data:
+                    logger.error(data['errors'])
+                return False, None
+            else:
+                retry += 1
+                return self._make_request(end_point=end_point, headers=headers, payload=payload, retry=retry)
 
     def get_session_id(self) -> str:
         """
