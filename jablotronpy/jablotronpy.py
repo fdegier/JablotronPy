@@ -19,7 +19,7 @@ class Jablotron:
         """
         self.headers = {
             "x-vendor-id": "JABLOTRON:Jablotron",
-            "x-client-version": "MYJ-PUB-ANDROID-12",
+            "x-client-version": "MYJ-PUB-ANDROID-15",
             "accept-encoding": "*",
             "Accept": "application/json",
             "Content-Type": "application/json",
@@ -36,6 +36,8 @@ class Jablotron:
         Retrieve the session_id and set it in the header as a cookie
         :return:
         """
+        if 'Cookie' in self.headers:
+            del self.headers['Cookie']
         session_id = self.get_session_id()
         self.headers['Cookie'] = f'PHPSESSID={session_id}'
 
@@ -65,26 +67,20 @@ class Jablotron:
                 return False, None
 
         data = r.json()
-        if data.get('http-code', 0) == 401:
+        if data.get('http-code', 0) in [400, 401]:
+            print(f"Error: {data}, setting cookies and retrying.")
             self.set_cookies()
-            if retry >= 3:
-                logger.error(f"Exhausted all retry options, response: {data.json()}")
-                if 'errors' in data:
-                    logger.error(data['errors'])
-                return False, None
-            else:
-                retry += 1
-                return self._make_request(end_point=end_point, headers=headers, payload=payload, retry=retry)
         else:
-            logger.error(f"An unexpected error occurred, status code: {r.status_code}")
-            if retry >= 3:
-                logger.error(f"Exhausted all retry options, response: {data.json()}")
-                if 'errors' in data:
-                    logger.error(data['errors'])
-                return False, None
-            else:
-                retry += 1
-                return self._make_request(end_point=end_point, headers=headers, payload=payload, retry=retry)
+            logger.error(f"An unexpected error occurred, status code: {r.status_code}, response: {data}, {r.text}")
+
+        if retry >= 3:
+            logger.error(f"Exhausted all retry options, response: {data.json()}")
+            if 'errors' in data:
+                logger.error(data['errors'])
+            return False, None
+        else:
+            retry += 1
+            return self._make_request(end_point=end_point, headers=headers, payload=payload, retry=retry)
 
     def get_session_id(self) -> str:
         """
@@ -275,7 +271,7 @@ class Jablotron:
                 "service-states": True
             }
         )
-        if status and 'programmableGates' in data:
+        if status:
             return data
         raise UnexpectedResponse("Unable to retrieve programmable gates.")
 
