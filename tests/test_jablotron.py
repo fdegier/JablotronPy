@@ -35,7 +35,7 @@ class TestJablotron(TestCase):
 
     def test_control_programmable_gate(self):
         service_id = self.jablotron.get_services()[1]["service-id"]
-        pg_id = self.jablotron.get_programmable_gates(service_id=service_id)["states"][15]["cloud-component-id"]
+        pg_id = self.jablotron.get_programmable_gates(service_id=service_id)["states"][1]["cloud-component-id"]
         data = self.jablotron.control_programmable_gate(service_id=service_id, component_id=pg_id, on=False)
         assert data["component-id"] == pg_id
         assert data["state"] == "OFF"
