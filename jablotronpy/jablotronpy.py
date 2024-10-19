@@ -328,13 +328,14 @@ class Jablotron:
         raise UnexpectedResponse("Unable to retrieve event history.")
 
     def control_component(self, service_id: int, component_id: str, state: str, control_pg: bool = False,
-                          service_type: str = "JA100"):
+                          service_type: str = "JA100", force: bool = False):
         """
         :param service_id: ID of your service, this ID can be obtained from get_services()
         :param service_type: Type of your service, type can be obtained from output of get_services()
         :param component_id:
         :param control_pg:
         :param state: For a section use either ARM or DISARM, for a PG use ON or OFF
+        :param force: Overwrite a blockage of the component
         :return:
         """
         if control_pg is True:
@@ -351,7 +352,8 @@ class Jablotron:
             "authorization": {"authorization-code": f"{self.pin_code}"},
             "control-components": [{
                 "actions": dict(action=control_type, value=state.upper()),
-                "component-id": component_id
+                "component-id": component_id,
+                "force": force
             }]
         }
 
@@ -365,7 +367,7 @@ class Jablotron:
                 if component["component-id"] == component_id and component["state"] == state.upper():
                     return component
 
-        raise UnexpectedResponse("Unable to control component")
+        raise UnexpectedResponse(f"Unable to control component, response: {data}")
 
     def control_programmable_gate(self, service_id: int, component_id: str, on: bool):
         """
