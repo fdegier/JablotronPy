@@ -148,10 +148,11 @@ class Jablotron:
         {
             "data": {
                 "device": {
-                    "family": "FUTURA2",
-                    "model-name": "FUTURA",
-                    "service-name": "Futura",
+                    "family": "JA100F",
+                    "model-name": "JA-107K",
+                    "service-name": "My Home",
                     "registration-key": "12345-12345-ABCD",
+                    "firmware": "MD6112.09.1",
                     "registration-date": "2025-01-28T16:56:15+0200"
                 },
                 "installation-company": {
