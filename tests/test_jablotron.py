@@ -39,3 +39,8 @@ class TestJablotron(TestCase):
         data = self.jablotron.control_programmable_gate(service_id=service_id, component_id=pg_id, on=False)
         assert data["component-id"] == pg_id
         assert data["state"] == "OFF"
+
+    def test_get_service_information(self):
+        service_id = self.jablotron.get_services()[1]["service-id"]
+        data = self.jablotron.get_service_information(service_id=service_id)
+        assert list(data.keys()) == ["device", "installation-company", "support"]

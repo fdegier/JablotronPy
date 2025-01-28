@@ -137,6 +137,47 @@ class Jablotron:
             return data["services"]
         raise UnexpectedResponse("Unable to retrieve services.")
 
+    def get_service_information(self, service_id: int) -> dict:
+        """
+        Function returns service information about given service_id.
+
+        :param service_id: ID of your service, this ID can be obtained from get_services()
+
+        Example of output:
+
+        {
+            "data": {
+                "device": {
+                    "family": "JA100F",
+                    "model-name": "JA-107K",
+                    "service-name": "My Home",
+                    "registration-key": "12345-12345-ABCD",
+                    "firmware": "MD6112.09.1",
+                    "registration-date": "2025-01-28T16:56:15+0200"
+                },
+                "installation-company": {
+                    "name": "John Doe",
+                    "phone-number": "+420800800522",
+                    "email": "john.doe@example.com"
+                },
+                "support": {
+                    "distributor": "JABLOTRON",
+                    "phone-number": "+420800800522",
+                    "email": "zakaznicka.linka@jablotron.cz"
+                }
+            },
+            "http-code": 200
+        }
+        """
+        status, data = self._make_request(
+            end_point="serviceInformationGet.json",
+            headers=self.headers,
+            payload={"service-id": service_id}
+        )
+        if status:
+            return data
+        raise UnexpectedResponse("Unable to retrieve service information.")
+
     def get_sections(self, service_id: int, service_type: str = "JA100") -> dict:
         """
         Function returns list or section for given service_id.

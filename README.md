@@ -42,3 +42,4 @@ The following methods are available:
 - get_services
 - get_session_id
 - get_thermo_devices
+- get_service_information
