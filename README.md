@@ -40,16 +40,15 @@ print(sections)
 
 The client offers a variation of data, here is a table of the methods and data it returns:
 
-| Method                    | Description |
-|---------------------------|-------------|
-| control_component         | aaa         |
-| control_programmable_gate | TODO:       |
-| control_section           | TODO:       |
-| get_keyboard_segments     | TODO:       |
-| get_programmable_gates    | TODO:       |
-| get_sections              | TODO:       |
-| get_service_history       | TODO:       |
-| get_services              | TODO:       |
-| get_session_id            | TODO:       |
-| get_thermo_devices        | TODO:       |
-| get_service_information   | TODO:       |
+| Method                    | Description                                                                  |
+|---------------------------|------------------------------------------------------------------------------|
+| perform_login             | Performs initial login to Jablotron Cloud API                                |
+| get_services              | Returns list of available services for specified Jablotron Cloud account     |
+| get_service_information   | Returns additional information about specified service                       |
+| get_sections              | Returns list of available sections for specified service                     |
+| get_thermo_devices        | Returns list of available thermo devices for specified service               |
+| get_keyboard_segments     | Returns list of available keyboards and their segments for specified service |
+| get_programmable_gates    | Returns available programmable gates and their states for specified service  |
+| get_service_history       | Returns list of historical events for specified service                      |
+| control_section           | Sets specified section of specified service to desired state                 |
+| control_programmable_gate | Sets specified programmable gate of specified service to desired state       |
