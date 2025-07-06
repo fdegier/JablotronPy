@@ -32,7 +32,7 @@ client.perform_login()
 
 # Get service and its sections
 service_id = client.get_services()[0]["service-id"]
-sections = client.get_sections(service_id=service_id)["sections"]
+sections = client.get_sections(service_id=service_id)
 print(sections)
 ```
 
