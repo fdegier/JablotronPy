@@ -1,4 +1,3 @@
-import logging
 from typing import Literal
 
 from requests import post, Response
@@ -9,8 +8,6 @@ from jablotronpy.exceptions import BadRequestException, UnauthorizedException, S
 from jablotronpy.types import JablotronService, JablotronServiceInformation, JablotronSections, JablotronThermoDevice, \
     JablotronKeyboard, JablotronProgrammableGates, JablotronServiceHistoryEvent, JablotronSectionControlResponse, \
     JablotronProgrammableGateControlResponse
-
-logger = logging.getLogger(__name__)
 
 
 class Jablotron:
@@ -166,7 +163,8 @@ class Jablotron:
         response = self._send_request(
             endpoint=f"{service_type}/thermoDevicesGet.json",
             payload={
-                "connect-device": True,  # Rather contact device to get actual values.
+                # Rather connect to device to get actual values
+                "connect-device": True,
                 "list-type": "FULL",
                 "service-id": service_id,
                 "service-states": False
@@ -186,7 +184,7 @@ class Jablotron:
         response = self._send_request(
             endpoint=f"{service_type}/keyboardSegmentsGet.json",
             payload={
-                # Probably not necessary to connect device, unless keyboards are often changed/renamed.
+                # Probably not necessary to connect to device, unless keyboards are often changed/renamed
                 "connect-device": False,
                 "list-type": "FULL",
                 "service-id": service_id,
@@ -207,7 +205,8 @@ class Jablotron:
         response = self._send_request(
             endpoint=f"{service_type}/programmableGatesGet.json",
             payload={
-                "connect-device": True,  # Rather contact device to get actual values.
+                # Rather connect to device to get actual values
+                "connect-device": True,
                 "list-type": "FULL",
                 "service-id": service_id,
                 "service-states": True
@@ -241,17 +240,15 @@ class Jablotron:
 
         # Construct payload based on user input
         payload_json: dict[str, str | int] = {
-            "limit": limit,
-            "service-id": service_id
+            k: v for k, v in {
+                "limit": limit,
+                "service-id": service_id,
+                "date-from": date_from,
+                "date-to": date_to,
+                "event-id-from": event_id_from,
+                "event-id-to": event_id_to,
+            }.items() if v is not None
         }
-        if date_from:
-            payload_json["date-from"] = date_from
-        if date_to:
-            payload_json["date-to"] = date_to
-        if event_id_from:
-            payload_json["event-id-from"] = event_id_from
-        if event_id_to:
-            payload_json["event-id-to"] = event_id_to
 
         response = self._send_request(
             endpoint=f"{service_type}/eventHistoryGet.json",
