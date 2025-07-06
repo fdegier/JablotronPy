@@ -347,8 +347,8 @@ class Jablotron:
         }]
         """
         payload_json = {
-                "limit": limit,
-                "service-id": service_id
+            "limit": limit,
+            "service-id": service_id
         }
         if date_from != "":
             payload_json["date-from"] = date_from
