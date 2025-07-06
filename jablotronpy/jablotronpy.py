@@ -70,6 +70,34 @@ class Jablotron:
             case _:
                 raise JablotronApiException(response.text)
 
+    @staticmethod
+    def _was_control_action_successful(
+        response_data: JablotronSectionControlResponse | JablotronProgrammableGateControlResponse,
+        component_id: str,
+        state: str
+    ) -> bool:
+        """
+        Return whether a control action was successful or not.
+
+        :param response_data: response data
+        :param component_id: component id
+        :param state: desired state of the component
+        """
+
+        # Raise exception if wrong code was entered
+        for error in response_data.get("control-errors", []):
+            if error["control-error"] == "WRONG-CODE":
+                raise IncorrectPinCodeException("Provided pin code is not valid.")
+            else:
+                raise ControlActionException("Control action failed with unexpected error.", error)
+
+        # Check whether control action was successful
+        components = response_data.get("states", [])
+        return next(
+            filter(lambda data: data["component-id"] == component_id and data["state"] == state.upper(), components),
+            None
+        ) is not None
+
     def perform_login(self) -> None:
         """
         Retrieve API session id and set it as cookie header.
@@ -266,20 +294,9 @@ class Jablotron:
             }
         )
 
-        # Raise exception if wrong code was entered
+        # Validate that control action was successful
         response_data: JablotronSectionControlResponse = response.json().get("data", {})
-        for error in response_data.get("control-errors", []):
-            if error["control-error"] == "WRONG-CODE":
-                raise IncorrectPinCodeException("Provided pin code is not valid.")
-            else:
-                raise ControlActionException("Control action failed with unexpected error.", error)
-
-        # Check whether control action was successful
-        components = response_data.get("states", [])
-        return next(
-            filter(lambda data: data["component-id"] == component_id and data["state"] == state.upper(), components),
-            None
-        ) is not None
+        return self._was_control_action_successful(response_data, component_id, state)
 
     def control_programmable_gate(
         self,
@@ -315,17 +332,6 @@ class Jablotron:
             }
         )
 
-        # Raise exception if wrong code was entered
+        # Validate that control action was successful
         response_data: JablotronProgrammableGateControlResponse = response.json().get("data", {})
-        for error in response_data.get("control-errors", []):
-            if error["control-error"] == "WRONG-CODE":
-                raise IncorrectPinCodeException("Provided pin code is not valid.")
-            else:
-                raise ControlActionException("Control action failed with unexpected error.", error)
-
-        # Check whether control action was successful
-        components = response_data.get("states", [])
-        return next(
-            filter(lambda data: data["component-id"] == component_id and data["state"] == state.upper(), components),
-            None
-        ) is not None
+        return self._was_control_action_successful(response_data, component_id, state)
