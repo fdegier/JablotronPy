@@ -79,14 +79,38 @@ JablotronServiceInformation = TypedDict(
 # ==== ALARM SECTIONS ====
 # ========================
 
-JablotronSection = TypedDict(
-    "JablotronSection",
+JablotronSectionsServiceStates = TypedDict(
+    "JablotronSectionsServiceStates",
+    {
+        "service-name": str
+    }
+)
+
+JablotronSectionsState = TypedDict(
+    "JablotronSectionsState",
+    {
+        "cloud-component-id": str,
+        "state": str
+    }
+)
+
+JablotronSectionsSection = TypedDict(
+    "JablotronSectionsSection",
     {
         "cloud-component-id": str,
         "name": str,
         "can-control": bool,
         "need-authorization": bool,
         "partial-arm-enabled": bool
+    }
+)
+
+JablotronSections = TypedDict(
+    "JablotronSections",
+    {
+        "service-states": JablotronSectionsServiceStates,
+        "states": list[JablotronSectionsState],
+        "sections": list[JablotronSectionsSection]
     }
 )
 

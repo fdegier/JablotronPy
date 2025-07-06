@@ -45,7 +45,7 @@ The client offers a variation of data, here is a table of the methods and data i
 | perform_login             | Performs initial login to Jablotron Cloud API                                |
 | get_services              | Returns list of available services for specified Jablotron Cloud account     |
 | get_service_information   | Returns additional information about specified service                       |
-| get_sections              | Returns list of available sections for specified service                     |
+| get_sections              | Returns available sections for specified service                             |
 | get_thermo_devices        | Returns list of available thermo devices for specified service               |
 | get_keyboard_segments     | Returns list of available keyboards and their segments for specified service |
 | get_programmable_gates    | Returns available programmable gates and their states for specified service  |

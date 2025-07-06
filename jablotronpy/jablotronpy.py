@@ -6,7 +6,7 @@ from requests import post, Response
 from jablotronpy.const import HEADERS, API_URL
 from jablotronpy.exceptions import BadRequestException, UnauthorizedException, SessionExpiredException, \
     JablotronApiException, NoPinCodeException, IncorrectPinCodeException, ControlActionException
-from jablotronpy.types import JablotronService, JablotronServiceInformation, JablotronSection, JablotronThermoDevice, \
+from jablotronpy.types import JablotronService, JablotronServiceInformation, JablotronSections, JablotronThermoDevice, \
     JablotronKeyboard, JablotronProgrammableGates, JablotronServiceHistoryEvent, JablotronSectionControlResponse, \
     JablotronProgrammableGateControlResponse
 
@@ -135,7 +135,7 @@ class Jablotron:
 
         return response.json().get("data", {})
 
-    def get_sections(self, service_id: int, service_type: str = "JA100") -> list[JablotronSection]:
+    def get_sections(self, service_id: int, service_type: str = "JA100") -> JablotronSections:
         """
         Return list of sections for specified service.
 
@@ -153,7 +153,7 @@ class Jablotron:
             }
         )
 
-        return response.json().get("data", {}).get("sections", [])
+        return response.json().get("data", {})
 
     def get_thermo_devices(self, service_id: int, service_type: str = "JA100") -> list[JablotronThermoDevice]:
         """
