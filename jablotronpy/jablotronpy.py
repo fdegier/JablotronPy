@@ -4,7 +4,8 @@ from requests import post, Response
 
 from jablotronpy.const import HEADERS, API_URL
 from jablotronpy.exceptions import BadRequestException, UnauthorizedException, SessionExpiredException, \
-    JablotronApiException, NoPinCodeException, IncorrectPinCodeException, ControlActionException
+    JablotronApiException, InvalidSessionIdException, NoPinCodeException, IncorrectPinCodeException, \
+    ControlActionException
 from jablotronpy.types import JablotronService, JablotronServiceInformation, JablotronSections, JablotronThermoDevice, \
     JablotronKeyboard, JablotronProgrammableGates, JablotronServiceHistoryEvent, JablotronSectionControlResponse, \
     JablotronProgrammableGateControlResponse
@@ -25,7 +26,7 @@ class Jablotron:
         self._username = username
         self._password = password
         self._pin_code = pin_code
-        self._headers = HEADERS
+        self._headers = HEADERS.copy()
 
     def _get_provided_pin_or_default_pin(self, pin_code: str | None) -> str:
         """
@@ -106,6 +107,9 @@ class Jablotron:
         )
 
         session_id = response.cookies.get("PHPSESSID")
+        if session_id is None:
+            raise InvalidSessionIdException("Login response does not contain a valid session id.")
+
         self._headers["Cookie"] = f"PHPSESSID={session_id}"
 
     def get_services(self) -> list[JablotronService]:

@@ -1,11 +1,11 @@
-class UnauthorizedException(Exception):
-    """Exception raised when request fails with 401 status code."""
+class BadRequestException(Exception):
+    """Exception raised when request fails with 400 status code."""
 
     pass
 
 
-class BadRequestException(Exception):
-    """Exception raised when request fails with 400 status code."""
+class UnauthorizedException(Exception):
+    """Exception raised when request fails with 401 status code."""
 
     pass
 
@@ -18,6 +18,12 @@ class SessionExpiredException(Exception):
 
 class JablotronApiException(Exception):
     """Exception raised when request fails with unexpected status code."""
+
+    pass
+
+
+class InvalidSessionIdException(Exception):
+    """Exception raised when login response does not contain a valid session id."""
 
     pass
 
