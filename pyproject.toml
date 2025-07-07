@@ -1,0 +1,18 @@
+[build-system]
+requires = ["setuptools >= 77.0.3"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "JablotronPy"
+description = "Client to interact with Jablotron Cloud API to control Jablotron alarm systems"
+readme = "README.md"
+authors = [
+  { name = "F. de Gier", email = "freddegier@me.com" }
+]
+
+version = "0.7.0"
+requires-python = ">=3.10"
+dependencies = ["requests>=2.32.2"]
+
+[project.urls]
+Homepage = "https://github.com/fdegier/JablotronPy"
