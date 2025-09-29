@@ -123,7 +123,8 @@ JablotronThermoDevice = TypedDict(
     {
         "object-device-id": str,
         "temperature": float,
-        "last-temperature-time": str
+        "last-temperature-time": str,
+        "name": str
     }
 )
 

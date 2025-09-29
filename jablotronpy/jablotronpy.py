@@ -175,7 +175,25 @@ class Jablotron:
             }
         )
 
-        return response.json().get("data", {}).get("states", [])
+        data = response.json().get("data", {})
+        states = data.get("states", [])
+        devices = data.get("thermo-devices", [])
+
+        meta_by_id = {d["object-device-id"]: d for d in devices}
+
+        result: list[JablotronThermoDevice] = []
+
+        for state in states:
+            dev_id = state["object-device-id"]
+            meta = meta_by_id.get(dev_id, {})
+            result.append({
+                "object-device-id": dev_id,
+                "temperature": state.get("temperature"),
+                "last-temperature-time": state.get("last-temperature-time"),
+                "name": meta.get("name", "")
+            })
+
+        return result
 
     def get_keyboard_segments(self, service_id: int, service_type: str = "JA100") -> list[JablotronKeyboard]:
         """
