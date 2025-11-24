@@ -1,4 +1,4 @@
-from typing import TypedDict
+from typing import TypedDict, Union
 
 # ==================
 # ==== SERVICES ====
@@ -253,5 +253,48 @@ JablotronProgrammableGateControlResponse = TypedDict(
     {
         "control-errors": list[JablotronSectionControlResponseError] | None,
         "states": list[JablotronSectionControlResponseState]
+    }
+)
+
+# =========================
+# ==== DEVICE SCHEDULE ====
+# =========================
+
+JablotronDeviceScheduleDataEntry = TypedDict(
+    "JablotronDeviceScheduleDataEntry",
+    {
+        "id": str,
+        "value": str,
+        "day": str,
+        "start": int,
+        "end": int
+    }
+)
+
+JablotronDeviceScheduleEntry = TypedDict(
+    "JablotronDeviceScheduleEntry",
+    {
+        "room_id": str,
+        "programs": list[str],
+        "group_by": str,
+        "default": str,
+        "restrict_count": int,
+        "restrict_count_interval": str,
+        "data": list[JablotronDeviceScheduleDataEntry]
+    }
+)
+
+JablotronDeviceSchedule = TypedDict(
+    "JablotronDeviceSchedule",
+    {
+        "id": str,
+        "type": str,
+        "parent_id": int,
+        "parent_type": str,
+        "schedule": list[JablotronDeviceScheduleEntry],
+        "status": bool,
+        "checksum": str,
+        "server_id": str,
+        "client_id": Union[None, str]
     }
 )
