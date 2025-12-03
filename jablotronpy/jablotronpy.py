@@ -8,7 +8,7 @@ from jablotronpy.exceptions import BadRequestException, UnauthorizedException, S
     ControlActionException
 from jablotronpy.types import JablotronService, JablotronServiceInformation, JablotronSections, JablotronThermoDevice, \
     JablotronKeyboard, JablotronProgrammableGates, JablotronServiceHistoryEvent, JablotronSectionControlResponse, \
-    JablotronProgrammableGateControlResponse, JablotronDeviceSchedule
+    JablotronProgrammableGateControlResponse, JablotronDeviceSchedule, JablotronServiceSettings
 
 
 class Jablotron:
@@ -361,7 +361,7 @@ class Jablotron:
 
     def get_service_settings(
         self, service_id: int, service_type: str = "JA100"
-    ) -> JablotronServiceInformation:
+    ) -> JablotronServiceSettings:
         """
         Return information about settings for a service.
 
@@ -374,7 +374,8 @@ class Jablotron:
             payload={"serviceId": service_id, "service": service_type.lower()},
         )
 
-        return response.json()
+        response_data: JablotronServiceSettings = response.json()
+        return response_data
 
     def control_thermo_device(
         self,
