@@ -8,7 +8,7 @@ from jablotronpy.exceptions import BadRequestException, UnauthorizedException, S
     ControlActionException
 from jablotronpy.types import JablotronService, JablotronServiceInformation, JablotronSections, JablotronThermoDevice, \
     JablotronKeyboard, JablotronProgrammableGates, JablotronServiceHistoryEvent, JablotronSectionControlResponse, \
-    JablotronProgrammableGateControlResponse
+    JablotronProgrammableGateControlResponse, JablotronDeviceSchedule, JablotronServiceSettings
 
 
 class Jablotron:
@@ -179,19 +179,23 @@ class Jablotron:
         states = data.get("states", [])
         devices = data.get("thermo-devices", [])
 
-        meta_by_id = {d["object-device-id"]: d for d in devices}
+        device_by_id = {d["object-device-id"]: d for d in devices}
 
         result: list[JablotronThermoDevice] = []
 
         for state in states:
             dev_id = state["object-device-id"]
-            meta = meta_by_id.get(dev_id, {})
-            result.append({
-                "object-device-id": dev_id,
-                "temperature": state.get("temperature"),
-                "last-temperature-time": state.get("last-temperature-time"),
-                "name": meta.get("name", "")
-            })
+            meta = device_by_id.get(dev_id, {})
+            result.append(
+                {
+                    "object-device-id": dev_id,
+                    "name": meta.get("name", ""),
+                    "temperature": state.get("temperature"),
+                    "last-temperature-time": state.get("last-temperature-time"),
+                    "thermo-device": device_by_id.get(dev_id, {}),
+                    "state": state,
+                }
+            )
 
         return result
 
@@ -354,3 +358,111 @@ class Jablotron:
         # Validate that control action was successful
         response_data: JablotronProgrammableGateControlResponse = response.json().get("data", {})
         return self._was_control_action_successful(response_data, component_id, state)
+
+    def get_service_settings(
+        self, service_id: int, service_type: str = "JA100"
+    ) -> JablotronServiceSettings:
+        """
+        Return information about settings for a service.
+
+        :param service_id: id of service to get settings for
+        :param service_type: type of service to get settings for
+        """
+
+        response = self._send_request(
+            endpoint="getServiceSettings.json",
+            payload={"serviceId": service_id, "service": service_type.lower()},
+        )
+
+        response_data: JablotronServiceSettings = response.json()
+        return response_data
+
+    def control_thermo_device(
+        self,
+        service_id: int,
+        object_device_id: str,
+        heating_mode: Literal["MANUAL", "SCHEDULED", "OFF", "ON"],
+        service_type: str = "JA100",
+    ) -> bool:
+        """
+        Set thermo device of specified service to desired heating mode.
+
+        :param service_id: id of service to control thermo device for
+        :param object_device_id: id of thermo device to control
+        :param heating_mode: heating mode to set
+        :param service_type: type of service to control thermo device for
+        """
+
+        response = self._send_request(
+            endpoint=f"{service_type}/controlThermoDevice.json",
+            payload={
+                "service-id": service_id,
+                "control-components": [
+                    {
+                        "actions": {"set-heating-mode": heating_mode},
+                        "component-id": object_device_id,
+                    }
+                ],
+            },
+        )
+
+        response_body = response.json()
+        response_data = response_body.get("data", {})
+
+        for error in response_data.get("control-errors", []):
+            raise ControlActionException(
+                "Control action failed with unexpected error.", error
+            )
+
+        states = response_data.get("states", [])
+        state = next(
+            filter(lambda state: state["object-device-id"] == object_device_id, states),
+            None,
+        )
+
+        if state is None:
+            return False
+
+        # When changing heating mode to OFF reply contains STAND_BY mode.
+        # When changing heating mode to ON reply contains either MANUAL or SCHEDULED mode.
+        return (
+            heating_mode == state["mode"]
+            or (heating_mode == "OFF" and state["mode"] == "STAND_BY")
+            or (
+                heating_mode == "ON"
+                and (state["mode"] == "MANUAL" or state["mode"] == "SCHEDULED")
+            )
+        )
+
+    def get_device_schedule(
+        self,
+        service_id: str,
+        device_type: str,
+        device_id: str,
+        room_id: str,
+        service_type: str = "JA100",
+    ) -> JablotronDeviceSchedule:
+        """
+        Return information about a schedule
+
+        :param service_id: id of service to get schedule for
+        :param device_type: device_type to get schedule for
+        :param device_id: device_id to get schedule for
+        :param room_id: room_id to get schedule for
+        :param service_type: type of service to get schedule for
+        """
+
+        response = self._send_request(
+            endpoint="getDeviceSchedule.json",
+            payload={
+                "status": True,
+                "type": device_type,
+                "id": device_id,
+                "parent_type": service_type.lower(),
+                "room_id": room_id,
+                "parent_id": service_id,
+            },
+        )
+
+        response_data: JablotronDeviceSchedule = response.json()
+        return response_data

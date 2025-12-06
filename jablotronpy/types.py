@@ -1,4 +1,4 @@
-from typing import TypedDict
+from typing import TypedDict, Union
 
 # ==================
 # ==== SERVICES ====
@@ -253,5 +253,133 @@ JablotronProgrammableGateControlResponse = TypedDict(
     {
         "control-errors": list[JablotronSectionControlResponseError] | None,
         "states": list[JablotronSectionControlResponseState]
+    }
+)
+
+# =========================
+# ==== DEVICE SCHEDULE ====
+# =========================
+
+JablotronDeviceScheduleDataEntry = TypedDict(
+    "JablotronDeviceScheduleDataEntry",
+    {
+        "id": str,
+        "value": str,
+        "day": str,
+        "start": int,
+        "end": int
+    }
+)
+
+JablotronDeviceScheduleEntry = TypedDict(
+    "JablotronDeviceScheduleEntry",
+    {
+        "room_id": str,
+        "programs": list[str],
+        "group_by": str,
+        "default": str,
+        "restrict_count": int,
+        "restrict_count_interval": str,
+        "data": list[JablotronDeviceScheduleDataEntry]
+    }
+)
+
+JablotronDeviceSchedule = TypedDict(
+    "JablotronDeviceSchedule",
+    {
+        "id": str,
+        "type": str,
+        "parent_id": int,
+        "parent_type": str,
+        "schedule": list[JablotronDeviceScheduleEntry],
+        "status": bool,
+        "checksum": str,
+        "server_id": str,
+        "client_id": Union[None, str]
+    }
+)
+
+# ==========================
+# ==== SERVICE SETTINGS ====
+# ==========================
+
+JablotronServiceInformationDevice = TypedDict(
+    "JablotronServiceInformationDevice",
+    {
+        "family": str,
+        "model-name": str,
+        "service-name": str,
+        "registration-key": str,
+        "registration-date": str,
+        "phone-number": str,
+        "firmware": str,
+    }
+)
+
+JablotronServiceInformationInstallationCompany = TypedDict(
+    "JablotronServiceInformationInstallationCompany",
+    {
+        "name": str,
+        "phone-number": str,
+        "email": str
+    }
+)
+
+JablotronServiceSettingsNamesEntry = TypedDict(
+    "JablotronServiceSettingsNamesEntry",
+    {
+        "name_type": str,
+        "name_key": str,
+        "name_value": str
+    }
+)
+
+JablotronServiceSettingsThermostatSettingsPrograms = TypedDict(
+    "JablotronServiceSettingsThermostatSettingsPrograms",
+    {
+        "temp_economy": float,
+        "temp_comfort": float,
+        "temp_turned_off": float,
+    }
+)
+
+JablotronServiceSettingsThermostatSettings = TypedDict(
+    "JablotronServiceSettingsThermostatSettings",
+    {
+        "temperature_limits_editable": bool,
+        "hysteresis": float,
+        "calibration_offset": float,
+        "temp_min": float,
+        "temp_max": float,
+        "programs": JablotronServiceSettingsThermostatSettingsPrograms
+    }
+)
+
+JablotronServiceSettingsThermostatsEntry = TypedDict(
+    "JablotronServiceSettingsThermostatsEntry",
+    {
+        "object_id": str,
+        "thermostat_index": str,
+        "object-device-id": str,
+        "thermostat_name": str,
+        "type": str,
+        "settings": JablotronServiceSettingsThermostatSettings
+    }
+)
+
+JablotronServiceSettings = TypedDict(
+    "JablotronServiceSettings",
+    {
+        "status": bool,
+        "settings_service_index": int,
+        "settings_service_visible": bool,
+        "settings_change_registration": bool,
+        "settings_names": list[JablotronServiceSettingsNamesEntry],
+        "permissions": None,
+        "settings_lite_plus_allowed": bool,
+        "thermostats": list[JablotronServiceSettingsThermostatsEntry],
+        "checksum": str,
+        "server_id": str,
+        "client_id": Union[None, str]
     }
 )
