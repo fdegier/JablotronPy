@@ -118,13 +118,46 @@ JablotronSections = TypedDict(
 # ==== THERMO DEVICES ====
 # ========================
 
-JablotronThermoDevice = TypedDict(
-    "JablotronThermoDevice",
+JablotronThermoDeviceDetails = TypedDict(
+    "JablotronThermoDeviceDetails",
+    {
+        "object-device-id": str,
+        "cloud-entity-id": str,
+        "name": str,
+        "can-control": bool,
+        "can-show-graph": bool,
+        "unit": str,
+        "type": str,
+        "temperature-range-min": float,
+        "temperature-range-max": float
+    }
+)
+
+JablotronThermoDeviceState = TypedDict(
+    "JablotronThermoDeviceState",
     {
         "object-device-id": str,
         "temperature": float,
         "last-temperature-time": str,
-        "name": str
+        "temperature-set": float,
+        "mode": str,
+        "temperature-comfort": float,
+        "temperature-economic": float,
+        "next-temperature-change": str,
+        "next-temperature-mode": str,
+        "heating-state": str
+    }
+)
+
+JablotronThermoDevice = TypedDict(
+    "JablotronThermoDevice",
+    {
+        "object-device-id": str,
+        "name": str,
+        "temperature": float,
+        "last-temperature-time": str,
+        "thermo-device": JablotronThermoDeviceDetails,
+        "state": JablotronThermoDeviceState,
     }
 )
 
