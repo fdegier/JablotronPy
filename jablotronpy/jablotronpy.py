@@ -8,7 +8,7 @@ from jablotronpy.exceptions import BadRequestException, UnauthorizedException, S
     ControlActionException
 from jablotronpy.types import JablotronService, JablotronServiceInformation, JablotronSections, JablotronThermoDevice, \
     JablotronKeyboard, JablotronProgrammableGates, JablotronServiceHistoryEvent, JablotronSectionControlResponse, \
-    JablotronProgrammableGateControlResponse, JablotronDeviceSchedule, JablotronServiceSettings
+    JablotronProgrammableGateControlResponse, JablotronDeviceSchedule, JablotronServiceSettings, JablotronThermoDeviceState
 
 
 class Jablotron:
@@ -376,22 +376,39 @@ class Jablotron:
 
         response_data: JablotronServiceSettings = response.json()
         return response_data
-
-    def control_thermo_device(
+    
+    def control_thermo_device_with_response(
         self,
         service_id: int,
         object_device_id: str,
-        heating_mode: Literal["MANUAL", "SCHEDULED", "OFF", "ON"],
+        heating_mode: Literal["MANUAL", "SCHEDULED", "OFF", "ON"] | None = None,
+        temperature: float | None = None,
         service_type: str = "JA100",
-    ) -> bool:
+    ) -> JablotronThermoDeviceState | None:
         """
-        Set thermo device of specified service to desired heating mode.
+        Set thermo device of specified service to desired heating mode
+        and return the device's state.
 
         :param service_id: id of service to control thermo device for
         :param object_device_id: id of thermo device to control
-        :param heating_mode: heating mode to set
+        :param heating_mode: heating mode to set or None to keep the current value
+        :param temperature: temperature to set or None to keep the current value
         :param service_type: type of service to control thermo device for
         """
+
+        if heating_mode == "SCHEDULED" and temperature is not None:
+            # When temperature is set and heating mode is set to SCHEDULED,
+            # heating mode is set to MANUAL_TEMP instead.
+            # => Raise exception in this case to prevent unexpected behaviour.
+            raise ControlActionException(
+                f"Temperature cannot be set when setting heating mode to {heating_mode}."
+            )
+
+        actions = {}
+        if heating_mode is not None:
+            actions["set-heating-mode"] = heating_mode
+        if temperature is not None:
+            actions["set-temperature"] = temperature
 
         response = self._send_request(
             endpoint=f"{service_type}/controlThermoDevice.json",
@@ -399,7 +416,7 @@ class Jablotron:
                 "service-id": service_id,
                 "control-components": [
                     {
-                        "actions": {"set-heating-mode": heating_mode},
+                        "actions": actions,
                         "component-id": object_device_id,
                     }
                 ],
@@ -408,31 +425,40 @@ class Jablotron:
 
         response_body = response.json()
         response_data = response_body.get("data", {})
+        response_errors = response_data.get("control-errors", [])
 
-        for error in response_data.get("control-errors", []):
+        if len(response_errors) > 0:
             raise ControlActionException(
-                "Control action failed with unexpected error.", error
+                "Thermo device control failed with unexpected error(s):", *response_errors
             )
 
         states = response_data.get("states", [])
-        state = next(
+        return next(
             filter(lambda state: state["object-device-id"] == object_device_id, states),
             None,
         )
 
-        if state is None:
-            return False
+    def control_thermo_device(
+        self,
+        service_id: int,
+        object_device_id: str,
+        heating_mode: Literal["MANUAL", "SCHEDULED", "OFF", "ON"] | None = None,
+        temperature: float | None = None,
+        service_type: str = "JA100",
+    ) -> bool:
+        """
+        Set thermo device of specified service to desired heating mode
+        and return boolean when the change is successful.
 
-        # When changing heating mode to OFF reply contains STAND_BY mode.
-        # When changing heating mode to ON reply contains either MANUAL or SCHEDULED mode.
-        return (
-            heating_mode == state["mode"]
-            or (heating_mode == "OFF" and state["mode"] == "STAND_BY")
-            or (
-                heating_mode == "ON"
-                and (state["mode"] == "MANUAL" or state["mode"] == "SCHEDULED")
-            )
-        )
+        :param service_id: id of service to control thermo device for
+        :param object_device_id: id of thermo device to control
+        :param heating_mode: heating mode to set or None to keep the current value
+        :param temperature: temperature to set or None to keep the current value
+        :param service_type: type of service to control thermo device for
+        """
+
+        state = self.control_thermo_device_with_response(service_id, object_device_id, heating_mode, temperature, service_type)
+        return state is not None
 
     def get_device_schedule(
         self,

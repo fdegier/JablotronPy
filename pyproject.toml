@@ -10,7 +10,7 @@ authors = [
   { name = "F. de Gier", email = "freddegier@me.com" }
 ]
 
-version = "0.7.2"
+version = "0.7.3"
 requires-python = ">=3.10"
 dependencies = ["requests>=2.32.2"]
 
