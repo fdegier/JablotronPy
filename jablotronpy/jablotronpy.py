@@ -1,22 +1,41 @@
+"""Client for Jablotron API integration."""
+
 from typing import Literal
 
-from requests import post, Response
+from requests import Response, post
 
-from jablotronpy.const import HEADERS, API_URL
-from jablotronpy.exceptions import BadRequestException, UnauthorizedException, SessionExpiredException, \
-    JablotronApiException, InvalidSessionIdException, NoPinCodeException, IncorrectPinCodeException, \
-    ControlActionException
-from jablotronpy.types import JablotronService, JablotronServiceInformation, JablotronSections, JablotronThermoDevice, \
-    JablotronKeyboard, JablotronProgrammableGates, JablotronServiceHistoryEvent, JablotronSectionControlResponse, \
-    JablotronProgrammableGateControlResponse, JablotronDeviceSchedule, JablotronServiceSettings, JablotronThermoDeviceState
+from jablotronpy.const import API_URL, HEADERS
+from jablotronpy.exceptions import (
+    BadRequestException,
+    ControlActionException,
+    IncorrectPinCodeException,
+    InvalidSessionIdException,
+    JablotronApiException,
+    NoPinCodeException,
+    SessionExpiredException,
+    UnauthorizedException,
+)
+from jablotronpy.types import (
+    JablotronDeviceSchedule,
+    JablotronKeyboard,
+    JablotronProgrammableGateControlResponse,
+    JablotronProgrammableGates,
+    JablotronSectionControlResponse,
+    JablotronSections,
+    JablotronService,
+    JablotronServiceHistoryEvent,
+    JablotronServiceInformation,
+    JablotronServiceSettings,
+    JablotronThermoDevice,
+    JablotronThermoDeviceState,
+)
 
 
 class Jablotron:
     """Client for Jablotron Cloud API."""
 
     def __init__(self, username: str, password: str, pin_code: str | None = None) -> None:
-        """
-        Initialize Jablotron Cloud API client.
+        """Initialize Jablotron Cloud API client.
 
         :param username: email address associated with Jablotron Cloud account
         :param password: password for Jablotron Cloud account
@@ -29,32 +48,27 @@ class Jablotron:
         self._headers = HEADERS.copy()
 
     def _get_provided_pin_or_default_pin(self, pin_code: str | None) -> str:
-        """
-        Return provided pin code or default pin code.
+        """Return provided pin code or default pin code.
 
         :param pin_code: provided pine code to control alarm entity
         """
 
         if pin_code:
             return pin_code
-        elif self._pin_code:
+
+        if self._pin_code:
             return self._pin_code
-        else:
-            raise NoPinCodeException("Please, provide pin code or set default pin code.")
+
+        raise NoPinCodeException("Please, provide pin code or set default pin code.")
 
     def _send_request(self, endpoint: str, payload: dict) -> Response:
-        """
-        Send request to Jablotron Cloud API endpoint and return its response.
+        """Send request to Jablotron Cloud API endpoint and return its response.
 
         :param endpoint: jablotron Cloud API endpoint
         :param payload: request payload
         """
 
-        response = post(
-            url=f"{API_URL}/{endpoint}",
-            headers=self._headers,
-            json=payload
-        )
+        response = post(url=f"{API_URL}/{endpoint}", headers=self._headers, json=payload)
 
         match response.status_code:
             case 200:
@@ -72,10 +86,9 @@ class Jablotron:
     def _was_control_action_successful(
         response_data: JablotronSectionControlResponse | JablotronProgrammableGateControlResponse,
         component_id: str,
-        state: str
+        state: str,
     ) -> bool:
-        """
-        Return whether a control action was successful or not.
+        """Return whether a control action was successful or not.
 
         :param response_data: response data
         :param component_id: component id
@@ -86,24 +99,28 @@ class Jablotron:
         for error in response_data.get("control-errors", []):
             if error["control-error"] == "WRONG-CODE":
                 raise IncorrectPinCodeException("Provided pin code is not valid.")
-            else:
-                raise ControlActionException("Control action failed with unexpected error.", error)
+
+            raise ControlActionException("Control action failed with unexpected error.", error)
 
         # Check whether control action was successful
         components = response_data.get("states", [])
-        return next(
-            filter(lambda data: data["component-id"] == component_id and data["state"] == state.upper(), components),
-            None
-        ) is not None
+        return (
+            next(
+                filter(
+                    lambda data: data["component-id"] == component_id and data["state"] == state.upper(),
+                    components,
+                ),
+                None,
+            )
+            is not None
+        )
 
     def perform_login(self) -> None:
-        """
-        Retrieve API session id and set it as cookie header.
-        """
+        """Retrieve API session id and set it as cookie header."""
 
         response = self._send_request(
             endpoint="userAuthorize.json",
-            payload=dict(login=self._username, password=self._password)
+            payload={"login": self._username, "password": self._password},
         )
 
         session_id = response.cookies.get("PHPSESSID")
@@ -117,28 +134,23 @@ class Jablotron:
 
         response = self._send_request(
             endpoint="serviceListGet.json",
-            payload={"list-type": "EXTENDED", "visibility": "DEFAULT"}
+            payload={"list-type": "EXTENDED", "visibility": "DEFAULT"},
         )
 
         return response.json().get("data", {}).get("services", [])
 
     def get_service_information(self, service_id: int) -> JablotronServiceInformation:
-        """
-        Return information about specific service.
+        """Return information about specific service.
 
         :param service_id: id of service to get information for
         """
 
-        response = self._send_request(
-            endpoint="serviceInformationGet.json",
-            payload={"service-id": service_id}
-        )
+        response = self._send_request(endpoint="serviceInformationGet.json", payload={"service-id": service_id})
 
         return response.json().get("data", {})
 
     def get_sections(self, service_id: int, service_type: str = "JA100") -> JablotronSections:
-        """
-        Return list of sections for specified service.
+        """Return list of sections for specified service.
 
         :param service_id: id of service to get sections for
         :param service_type: type of service to get sections for
@@ -150,15 +162,14 @@ class Jablotron:
                 "connect-device": True,
                 "list-type": "FULL",
                 "service-id": service_id,
-                "service-states": True
-            }
+                "service-states": True,
+            },
         )
 
         return response.json().get("data", {})
 
     def get_thermo_devices(self, service_id: int, service_type: str = "JA100") -> list[JablotronThermoDevice]:
-        """
-        Return list of thermo devices for specified service.
+        """Return list of thermo devices for specified service.
 
         :param service_id: id of service to get thermo devices for
         :param service_type: type of service to get thermo devices for
@@ -171,8 +182,8 @@ class Jablotron:
                 "connect-device": True,
                 "list-type": "FULL",
                 "service-id": service_id,
-                "service-states": False
-            }
+                "service-states": False,
+            },
         )
 
         data = response.json().get("data", {})
@@ -200,8 +211,7 @@ class Jablotron:
         return result
 
     def get_keyboard_segments(self, service_id: int, service_type: str = "JA100") -> list[JablotronKeyboard]:
-        """
-        Return list of keyboard segments for specified service.
+        """Return list of keyboard segments for specified service.
 
         :param service_id: id of service to get keyboard segments for
         :param service_type: type of service to get keyboard segments for
@@ -210,19 +220,19 @@ class Jablotron:
         response = self._send_request(
             endpoint=f"{service_type}/keyboardSegmentsGet.json",
             payload={
-                # Probably not necessary to connect to device, unless keyboards are often changed/renamed
+                # Probably not necessary to connect to device, unless keyboards are often
+                # changed/renamed
                 "connect-device": False,
                 "list-type": "FULL",
                 "service-id": service_id,
-                "service-states": False
-            }
+                "service-states": False,
+            },
         )
 
         return response.json().get("data", {}).get("keyboards", [])
 
     def get_programmable_gates(self, service_id: int, service_type: str = "JA100") -> JablotronProgrammableGates:
-        """
-        Return programmable gates and their states for specified service.
+        """Return programmable gates and their states for specified service.
 
         :param service_id: id of service to get programmable gates for
         :param service_type: type of service to get programmable gates for
@@ -235,8 +245,8 @@ class Jablotron:
                 "connect-device": True,
                 "list-type": "FULL",
                 "service-id": service_id,
-                "service-states": True
-            }
+                "service-states": True,
+            },
         )
 
         return response.json().get("data", {})
@@ -249,10 +259,10 @@ class Jablotron:
         event_id_from: str | None = None,
         event_id_to: str | None = None,
         limit: int = 20,
-        service_type: str = "JA100"
+        service_type: str = "JA100",
     ) -> list[JablotronServiceHistoryEvent]:
-        """
-        Return history for specified service.
+        """Return history for specified service.
+
         Returns last 20 events by default, but it can be configured using other params.
 
         :param service_id: id of service to get history for
@@ -266,20 +276,19 @@ class Jablotron:
 
         # Construct payload based on user input
         payload_json: dict[str, str | int] = {
-            k: v for k, v in {
+            k: v
+            for k, v in {
                 "limit": limit,
                 "service-id": service_id,
                 "date-from": date_from,
                 "date-to": date_to,
                 "event-id-from": event_id_from,
                 "event-id-to": event_id_to,
-            }.items() if v is not None
+            }.items()
+            if v is not None
         }
 
-        response = self._send_request(
-            endpoint=f"{service_type}/eventHistoryGet.json",
-            payload=payload_json
-        )
+        response = self._send_request(endpoint=f"{service_type}/eventHistoryGet.json", payload=payload_json)
 
         return response.json().get("data", {}).get("events", [])
 
@@ -292,8 +301,7 @@ class Jablotron:
         service_type: str = "JA100",
         force: bool = False,
     ) -> bool:
-        """
-        Set section of specified service to desired state.
+        """Set section of specified service to desired state.
 
         :param service_id: id of service to control section for
         :param component_id: if of component to control
@@ -309,12 +317,14 @@ class Jablotron:
             payload={
                 "service-id": service_id,
                 "authorization": {"authorization-code": pin_code},
-                "control-components": [{
-                    "actions": dict(action="CONTROL-SECTION", value=state.upper()),
-                    "component-id": component_id,
-                    "force": force
-                }]
-            }
+                "control-components": [
+                    {
+                        "actions": {"action": "CONTROL-SECTION", "value": state.upper()},
+                        "component-id": component_id,
+                        "force": force,
+                    }
+                ],
+            },
         )
 
         # Validate that control action was successful
@@ -330,8 +340,7 @@ class Jablotron:
         service_type: str = "JA100",
         force: bool = False,
     ) -> bool:
-        """
-        Set programmable gate of specified service to desired state.
+        """Set programmable gate of specified service to desired state.
 
         :param service_id: id of service to control programmable gate for
         :param component_id: if of component to control
@@ -347,23 +356,22 @@ class Jablotron:
             payload={
                 "service-id": service_id,
                 "authorization": {"authorization-code": pin_code},
-                "control-components": [{
-                    "actions": dict(action="CONTROL-PG", value=state.upper()),
-                    "component-id": component_id,
-                    "force": force
-                }]
-            }
+                "control-components": [
+                    {
+                        "actions": {"action": "CONTROL-PG", "value": state.upper()},
+                        "component-id": component_id,
+                        "force": force,
+                    }
+                ],
+            },
         )
 
         # Validate that control action was successful
         response_data: JablotronProgrammableGateControlResponse = response.json().get("data", {})
         return self._was_control_action_successful(response_data, component_id, state)
 
-    def get_service_settings(
-        self, service_id: int, service_type: str = "JA100"
-    ) -> JablotronServiceSettings:
-        """
-        Return information about settings for a service.
+    def get_service_settings(self, service_id: int, service_type: str = "JA100") -> JablotronServiceSettings:
+        """Return information about settings for a service.
 
         :param service_id: id of service to get settings for
         :param service_type: type of service to get settings for
@@ -376,7 +384,7 @@ class Jablotron:
 
         response_data: JablotronServiceSettings = response.json()
         return response_data
-    
+
     def control_thermo_device_with_response(
         self,
         service_id: int,
@@ -385,9 +393,7 @@ class Jablotron:
         temperature: float | None = None,
         service_type: str = "JA100",
     ) -> JablotronThermoDeviceState | None:
-        """
-        Set thermo device of specified service to desired heating mode
-        and return the device's state.
+        """Set thermo device of specified service to desired heating mode and return the device's state.
 
         :param service_id: id of service to control thermo device for
         :param object_device_id: id of thermo device to control
@@ -400,9 +406,7 @@ class Jablotron:
             # When temperature is set and heating mode is set to SCHEDULED,
             # heating mode is set to MANUAL_TEMP instead.
             # => Raise exception in this case to prevent unexpected behaviour.
-            raise ControlActionException(
-                f"Temperature cannot be set when setting heating mode to {heating_mode}."
-            )
+            raise ControlActionException(f"Temperature cannot be set when setting heating mode to {heating_mode}.")
 
         actions = {}
         if heating_mode is not None:
@@ -429,7 +433,8 @@ class Jablotron:
 
         if len(response_errors) > 0:
             raise ControlActionException(
-                "Thermo device control failed with unexpected error(s):", *response_errors
+                "Thermo device control failed with unexpected error(s):",
+                *response_errors,
             )
 
         states = response_data.get("states", [])
@@ -446,9 +451,7 @@ class Jablotron:
         temperature: float | None = None,
         service_type: str = "JA100",
     ) -> bool:
-        """
-        Set thermo device of specified service to desired heating mode
-        and return boolean when the change is successful.
+        """Set thermo device of specified service to desired heating mode and return boolean when the change is successful.
 
         :param service_id: id of service to control thermo device for
         :param object_device_id: id of thermo device to control
@@ -457,7 +460,9 @@ class Jablotron:
         :param service_type: type of service to control thermo device for
         """
 
-        state = self.control_thermo_device_with_response(service_id, object_device_id, heating_mode, temperature, service_type)
+        state = self.control_thermo_device_with_response(
+            service_id, object_device_id, heating_mode, temperature, service_type
+        )
         return state is not None
 
     def get_device_schedule(
@@ -468,8 +473,7 @@ class Jablotron:
         room_id: str,
         service_type: str = "JA100",
     ) -> JablotronDeviceSchedule:
-        """
-        Return information about a schedule
+        """Return information about a schedule.
 
         :param service_id: id of service to get schedule for
         :param device_type: device_type to get schedule for
