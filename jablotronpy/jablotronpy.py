@@ -1,5 +1,6 @@
 """Client for Jablotron API integration."""
 
+import json
 from typing import Literal
 
 from requests import Response, post
@@ -26,6 +27,8 @@ from jablotronpy.types import (
     JablotronServiceHistoryEvent,
     JablotronServiceInformation,
     JablotronServiceSettings,
+    JablotronServiceSettingsThermostatSettings,
+    JablotronServiceSettingsUpdateResponse,
     JablotronThermoDevice,
     JablotronThermoDeviceState,
 )
@@ -62,13 +65,38 @@ class Jablotron:
         raise NoPinCodeException("Please, provide pin code or set default pin code.")
 
     def _send_request(self, endpoint: str, payload: dict) -> Response:
-        """Send request to Jablotron Cloud API endpoint and return its response.
+        """Send request to Jablotron Cloud API endpoint with payload in JSON format and return its response.
 
         :param endpoint: jablotron Cloud API endpoint
         :param payload: request payload
         """
 
         response = post(url=f"{API_URL}/{endpoint}", headers=self._headers, json=payload)
+
+        match response.status_code:
+            case 200:
+                return response
+            case 400:
+                raise BadRequestException("Request is not valid, please review provided parameters.")
+            case 401:
+                raise UnauthorizedException("Failed to authenticate using entered credentials or session id expired.")
+            case 408:
+                raise SessionExpiredException("Session expired, please re-login.")
+            case _:
+                raise JablotronApiException(response.text)
+
+    def _send_request_as_form_data(self, endpoint: str, payload: dict) -> Response:
+        """Send request to Jablotron Cloud API endpoint with payload in form data format and return its response.
+
+        :param endpoint: jablotron Cloud API endpoint
+        :param payload: request payload
+        """
+
+        response = post(
+            url=f"{API_URL}/{endpoint}",
+            headers={**self._headers, "Content-Type": "application/x-www-form-urlencoded; charset=utf-8"},
+            data=payload,
+        )
 
         match response.status_code:
             case 200:
@@ -384,6 +412,45 @@ class Jablotron:
 
         response_data: JablotronServiceSettings = response.json()
         return response_data
+
+    def update_service_settings(
+        self,
+        service_id: int,
+        thermostat_settings: JablotronServiceSettingsThermostatSettings,
+        service_type: str = "JA100",
+    ) -> JablotronServiceSettingsUpdateResponse:
+        """Update service settings.
+
+        :param service_id: id of service to control thermo device for
+        :param thermostat_settings: thermostat settings to update, must be complete JablotronServiceSettingsThermostatSettings
+        :param service_type: type of service to control thermo device for
+        """
+
+        response = self._send_request_as_form_data(
+            endpoint="updateServiceSettings.json",
+            payload={
+                "service_data": json.dumps(
+                    [
+                        {
+                            "serviceId": service_id,
+                            "service": service_type.lower(),
+                            "data": {"thermostats": [thermostat_settings]},
+                        }
+                    ]
+                )
+            },
+        )
+
+        response_body: JablotronServiceSettingsUpdateResponse = response.json()
+
+        if not response_body["status"]:
+            raise ControlActionException(
+                "Service settings update failed with unexpected error(s):",
+                response_body["error_status"],
+                response_body["error_message"],
+            )
+
+        return response_body
 
     def control_thermo_device_with_response(
         self,
