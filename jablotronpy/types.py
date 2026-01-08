@@ -1,4 +1,6 @@
-from typing import TypedDict, Union
+"""Types for Jablotron API integration."""
+
+from typing import TypedDict
 
 # ==================
 # ==== SERVICES ====
@@ -8,8 +10,8 @@ JablotronServiceExtendedState = TypedDict(
     "JablotronServiceExtendedState",
     {
         "type": str,
-        "value": str
-    }
+        "value": str,
+    },
 )
 
 JablotronService = TypedDict(
@@ -27,8 +29,8 @@ JablotronService = TypedDict(
         "message": str,
         "event-last-time": str,
         "share-status": str,
-        "extended-states": list[JablotronServiceExtendedState]
-    }
+        "extended-states": list[JablotronServiceExtendedState],
+    },
 )
 
 # =============================
@@ -45,7 +47,7 @@ JablotronServiceInformationDevice = TypedDict(
         "registration-date": str,
         "phone-number": str,
         "firmware": str,
-    }
+    },
 )
 
 JablotronServiceInformationInstallationCompany = TypedDict(
@@ -53,8 +55,8 @@ JablotronServiceInformationInstallationCompany = TypedDict(
     {
         "name": str,
         "phone-number": str,
-        "email": str
-    }
+        "email": str,
+    },
 )
 
 JablotronServiceInformationSupport = TypedDict(
@@ -62,8 +64,8 @@ JablotronServiceInformationSupport = TypedDict(
     {
         "distributor": str,
         "phone-number": str,
-        "email": str
-    }
+        "email": str,
+    },
 )
 
 JablotronServiceInformation = TypedDict(
@@ -71,8 +73,8 @@ JablotronServiceInformation = TypedDict(
     {
         "device": JablotronServiceInformationDevice,
         "installation-company": JablotronServiceInformationInstallationCompany | None,
-        "support": JablotronServiceInformationSupport
-    }
+        "support": JablotronServiceInformationSupport,
+    },
 )
 
 # ========================
@@ -82,16 +84,16 @@ JablotronServiceInformation = TypedDict(
 JablotronSectionsServiceStates = TypedDict(
     "JablotronSectionsServiceStates",
     {
-        "service-name": str
-    }
+        "service-name": str,
+    },
 )
 
 JablotronSectionsState = TypedDict(
     "JablotronSectionsState",
     {
         "cloud-component-id": str,
-        "state": str
-    }
+        "state": str,
+    },
 )
 
 JablotronSectionsSection = TypedDict(
@@ -101,8 +103,8 @@ JablotronSectionsSection = TypedDict(
         "name": str,
         "can-control": bool,
         "need-authorization": bool,
-        "partial-arm-enabled": bool
-    }
+        "partial-arm-enabled": bool,
+    },
 )
 
 JablotronSections = TypedDict(
@@ -110,8 +112,8 @@ JablotronSections = TypedDict(
     {
         "service-states": JablotronSectionsServiceStates,
         "states": list[JablotronSectionsState],
-        "sections": list[JablotronSectionsSection]
-    }
+        "sections": list[JablotronSectionsSection],
+    },
 )
 
 # ========================
@@ -129,8 +131,8 @@ JablotronThermoDeviceDetails = TypedDict(
         "unit": str,
         "type": str,
         "temperature-range-min": float,
-        "temperature-range-max": float
-    }
+        "temperature-range-max": float,
+    },
 )
 
 JablotronThermoDeviceState = TypedDict(
@@ -145,8 +147,8 @@ JablotronThermoDeviceState = TypedDict(
         "temperature-economic": float,
         "next-temperature-change": str,
         "next-temperature-mode": str,
-        "heating-state": str
-    }
+        "heating-state": str,
+    },
 )
 
 JablotronThermoDevice = TypedDict(
@@ -158,7 +160,7 @@ JablotronThermoDevice = TypedDict(
         "last-temperature-time": str,
         "thermo-device": JablotronThermoDeviceDetails,
         "state": JablotronThermoDeviceState,
-    }
+    },
 )
 
 # ===========================
@@ -174,8 +176,8 @@ JablotronKeyboardSegment = TypedDict(
         "need-authorization": bool,
         "display-component-id": str | None,
         "control-component-id": str | None,
-        "segment-function": str
-    }
+        "segment-function": str,
+    },
 )
 
 JablotronKeyboard = TypedDict(
@@ -183,8 +185,8 @@ JablotronKeyboard = TypedDict(
     {
         "object-device-id": str,
         "name": str,
-        "segments": list[JablotronKeyboardSegment]
-    }
+        "segments": list[JablotronKeyboardSegment],
+    },
 )
 
 # ============================
@@ -196,24 +198,24 @@ JablotronProgrammableGatesGate = TypedDict(
     {
         "cloud-component-id": str,
         "name": str,
-        "can-control": bool
-    }
+        "can-control": bool,
+    },
 )
 
 JablotronProgrammableGatesState = TypedDict(
     "JablotronProgrammableGatesState",
     {
         "cloud-component-id": str,
-        "state": str
-    }
+        "state": str,
+    },
 )
 
 JablotronProgrammableGates = TypedDict(
     "JablotronProgrammableGates",
     {
         "programmableGates": list[JablotronProgrammableGatesGate] | None,
-        "states": list[JablotronProgrammableGatesState]
-    }
+        "states": list[JablotronProgrammableGatesState],
+    },
 )
 
 # =========================
@@ -229,8 +231,8 @@ JablotronServiceHistoryEvent = TypedDict(
         "event-text": str,
         "section-name": str,
         "invoker-name": str,
-        "invoker-type": str
-    }
+        "invoker-type": str,
+    },
 )
 
 # =========================
@@ -241,24 +243,24 @@ JablotronSectionControlResponseError = TypedDict(
     "JablotronSectionControlResponseError",
     {
         "component-id": str,
-        "control-error": str
-    }
+        "control-error": str,
+    },
 )
 
 JablotronSectionControlResponseState = TypedDict(
     "JablotronSectionControlResponseState",
     {
         "component-id": str,
-        "state": str
-    }
+        "state": str,
+    },
 )
 
 JablotronSectionControlResponse = TypedDict(
     "JablotronSectionControlResponse",
     {
         "control-errors": list[JablotronSectionControlResponseError] | None,
-        "states": list[JablotronSectionControlResponseState]
-    }
+        "states": list[JablotronSectionControlResponseState],
+    },
 )
 
 # ===================================
@@ -269,24 +271,24 @@ JablotronProgrammableGateControlResponseError = TypedDict(
     "JablotronProgrammableGateControlResponseError",
     {
         "component-id": str,
-        "control-error": str
-    }
+        "control-error": str,
+    },
 )
 
 JablotronProgrammableGateControlResponseState = TypedDict(
     "JablotronProgrammableGateControlResponseState",
     {
         "component-id": str,
-        "state": str
-    }
+        "state": str,
+    },
 )
 
 JablotronProgrammableGateControlResponse = TypedDict(
     "JablotronProgrammableGateControlResponse",
     {
         "control-errors": list[JablotronSectionControlResponseError] | None,
-        "states": list[JablotronSectionControlResponseState]
-    }
+        "states": list[JablotronSectionControlResponseState],
+    },
 )
 
 # =========================
@@ -300,8 +302,8 @@ JablotronDeviceScheduleDataEntry = TypedDict(
         "value": str,
         "day": str,
         "start": int,
-        "end": int
-    }
+        "end": int,
+    },
 )
 
 JablotronDeviceScheduleEntry = TypedDict(
@@ -313,8 +315,8 @@ JablotronDeviceScheduleEntry = TypedDict(
         "default": str,
         "restrict_count": int,
         "restrict_count_interval": str,
-        "data": list[JablotronDeviceScheduleDataEntry]
-    }
+        "data": list[JablotronDeviceScheduleDataEntry],
+    },
 )
 
 JablotronDeviceSchedule = TypedDict(
@@ -328,8 +330,8 @@ JablotronDeviceSchedule = TypedDict(
         "status": bool,
         "checksum": str,
         "server_id": str,
-        "client_id": Union[None, str]
-    }
+        "client_id": str | None,
+    },
 )
 
 # ==========================
@@ -346,7 +348,7 @@ JablotronServiceInformationDevice = TypedDict(
         "registration-date": str,
         "phone-number": str,
         "firmware": str,
-    }
+    },
 )
 
 JablotronServiceInformationInstallationCompany = TypedDict(
@@ -354,8 +356,8 @@ JablotronServiceInformationInstallationCompany = TypedDict(
     {
         "name": str,
         "phone-number": str,
-        "email": str
-    }
+        "email": str,
+    },
 )
 
 JablotronServiceSettingsNamesEntry = TypedDict(
@@ -363,8 +365,8 @@ JablotronServiceSettingsNamesEntry = TypedDict(
     {
         "name_type": str,
         "name_key": str,
-        "name_value": str
-    }
+        "name_value": str,
+    },
 )
 
 JablotronServiceSettingsThermostatSettingsPrograms = TypedDict(
@@ -373,7 +375,7 @@ JablotronServiceSettingsThermostatSettingsPrograms = TypedDict(
         "temp_economy": float,
         "temp_comfort": float,
         "temp_turned_off": float,
-    }
+    },
 )
 
 JablotronServiceSettingsThermostatSettings = TypedDict(
@@ -384,8 +386,8 @@ JablotronServiceSettingsThermostatSettings = TypedDict(
         "calibration_offset": float,
         "temp_min": float,
         "temp_max": float,
-        "programs": JablotronServiceSettingsThermostatSettingsPrograms
-    }
+        "programs": JablotronServiceSettingsThermostatSettingsPrograms,
+    },
 )
 
 JablotronServiceSettingsThermostatsEntry = TypedDict(
@@ -396,8 +398,8 @@ JablotronServiceSettingsThermostatsEntry = TypedDict(
         "object-device-id": str,
         "thermostat_name": str,
         "type": str,
-        "settings": JablotronServiceSettingsThermostatSettings
-    }
+        "settings": JablotronServiceSettingsThermostatSettings,
+    },
 )
 
 JablotronServiceSettings = TypedDict(
@@ -413,6 +415,6 @@ JablotronServiceSettings = TypedDict(
         "thermostats": list[JablotronServiceSettingsThermostatsEntry],
         "checksum": str,
         "server_id": str,
-        "client_id": Union[None, str]
-    }
+        "client_id": str | None,
+    },
 )

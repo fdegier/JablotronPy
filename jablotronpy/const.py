@@ -1,4 +1,5 @@
-# API constants
+"""Constants for Jablotron API integration."""
+
 API_VERSION = "2.2"
 API_URL = f"https://api.jablonet.net/api/{API_VERSION}"
 HEADERS = {
@@ -7,5 +8,5 @@ HEADERS = {
     "accept-encoding": "*",
     "Accept": "application/json",
     "Content-Type": "application/json",
-    'Accept-Language': 'en',
+    "Accept-Language": "en",
 }

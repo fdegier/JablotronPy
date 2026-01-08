@@ -1,3 +1,5 @@
+"""Tests for Jablotron API integration."""
+
 import os
 from unittest import TestCase, skip
 
@@ -5,6 +7,8 @@ from jablotronpy.jablotronpy import Jablotron
 
 
 class TestJablotron(TestCase):
+    """Tests for Jablotron API integration."""
+
     # Initialize client and perform initial login
     jablotron = Jablotron(
         username=os.environ["TEST_JABLOTRON_USER"],
@@ -16,7 +20,7 @@ class TestJablotron(TestCase):
     def test_session_id(self):
         """Validate that login function works."""
 
-        cookie = self.jablotron._headers["Cookie"]
+        cookie = self.jablotron._headers["Cookie"]  # noqa: SLF001
         session_id = cookie.split("=", 1)[1]
 
         assert cookie.startswith("PHPSESSID=")
@@ -29,7 +33,7 @@ class TestJablotron(TestCase):
         services = self.jablotron.get_services()
 
         assert isinstance(services, list)
-        assert "service-id" in services[0].keys()
+        assert "service-id" in services[0]
 
     def test_get_service_information(self):
         """Validate that get_service_information function works."""
@@ -60,9 +64,7 @@ class TestJablotron(TestCase):
         """Validate that get_keyboard_segments function works."""
 
         services = self.jablotron.get_services()
-        keyboards = self.jablotron.get_keyboard_segments(
-            service_id=services[0]["service-id"]
-        )
+        keyboards = self.jablotron.get_keyboard_segments(service_id=services[0]["service-id"])
 
         assert list(keyboards[0].keys()) == ["object-device-id", "name", "segments"]
 
@@ -70,9 +72,7 @@ class TestJablotron(TestCase):
         """Validate that get_programmable_gates function works."""
 
         services = self.jablotron.get_services()
-        sections = self.jablotron.get_programmable_gates(
-            service_id=services[0]["service-id"]
-        )
+        sections = self.jablotron.get_programmable_gates(service_id=services[0]["service-id"])
 
         # Do NOT validate 'programmableGates' property since it's optional in the response
         assert list(sections.keys()) == ["service-states", "states"]
@@ -82,9 +82,7 @@ class TestJablotron(TestCase):
         """Validate that get_service_history function works."""
 
         services = self.jablotron.get_services()
-        events = self.jablotron.get_service_history(
-            service_id=services[0]["service-id"]
-        )
+        events = self.jablotron.get_service_history(service_id=services[0]["service-id"])
 
         assert list(events[0].keys()) == [
             "id",
@@ -93,7 +91,7 @@ class TestJablotron(TestCase):
             "event-text",
             "section-name",
             "invoker-name",
-            "invoker-type"
+            "invoker-type",
         ]
 
     def test_control_section(self):
@@ -104,7 +102,7 @@ class TestJablotron(TestCase):
         action_successful = self.jablotron.control_section(
             service_id=services[0]["service-id"],
             component_id=sections["sections"][1]["cloud-component-id"],
-            state="DISARM"
+            state="DISARM",
         )
 
         assert action_successful is True
@@ -118,7 +116,7 @@ class TestJablotron(TestCase):
         action_successful = self.jablotron.control_programmable_gate(
             service_id=services[0]["service-id"],
             component_id=gates["states"][1]["cloud-component-id"],
-            state="OFF"
+            state="OFF",
         )
 
         assert action_successful is True
