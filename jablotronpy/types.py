@@ -418,3 +418,15 @@ JablotronServiceSettings = TypedDict(
         "client_id": str | None,
     },
 )
+
+JablotronServiceSettingsUpdateResponse = TypedDict(
+    "JablotronServiceSettingsUpdateResponse",
+    {
+        "status": bool,
+        "checksum": str,
+        "server_id": str,
+        "client_id": str | None,
+        "error_status": str | None,
+        "error_message": str | None,
+    },
+)
