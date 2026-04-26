@@ -81,10 +81,26 @@ JablotronServiceInformation = TypedDict(
 # ==== ALARM SECTIONS ====
 # ========================
 
+JablotronServiceStateEvent = TypedDict(
+    "JablotronServiceStateEvent",
+    {
+        # Observed value: "ALARM". Other types (tamper, sabotage, fault) may exist but are
+        # not yet documented.
+        "type": str,
+        # Human-readable description, e.g. "Alarm - Periphery PIR".
+        "message": str,
+        # ISO-8601 timestamp with offset, e.g. "2026-04-26T10:24:16+0200".
+        "date": str,
+    },
+)
+
 JablotronSectionsServiceStates = TypedDict(
     "JablotronSectionsServiceStates",
     {
         "service-name": str,
+        # Transient list of currently-active service events (e.g. an active alarm). Only
+        # present in the response while an event is live.
+        "events": list[JablotronServiceStateEvent],
     },
 )
 
