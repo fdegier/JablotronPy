@@ -52,3 +52,46 @@ The client offers a variation of data, here is a table of the methods and data i
 | get_service_history       | Returns list of historical events for specified service                      |
 | control_section           | Sets specified section of specified service to desired state                 |
 | control_programmable_gate | Sets specified programmable gate of specified service to desired state       |
+
+## Detecting active alarms
+
+The Jablotron Cloud API does not push notifications to third-party clients, so detecting an
+active alarm requires polling. The signal lives in the `sectionsGet` response, **not** in
+`serviceListGet` or in the section state itself (a section in alarm continues to report state
+`ARM`). While an alarm is live, `data["service-states"]` contains an `events` list:
+
+```json
+{
+  "service-states": {
+    "service-name": "Home",
+    "events": [
+      {
+        "type": "ALARM",
+        "message": "Alarm - Periphery PIR hallway (wifi), Section House",
+        "date": "2026-04-26T10:24:16+0200"
+      }
+    ]
+  },
+  "states": [{"cloud-component-id": "SEC-...", "state": "ARM"}],
+  "sections": [...]
+}
+```
+
+Notes:
+
+- The `events` key is **only present while an event is active**. If the alarm ends before
+  the next poll, you will miss it.
+- Observed `type` value: `"ALARM"`. Other types (tamper, sabotage, fault) likely exist but
+  are not yet documented here.
+- The `JA100/eventHistoryGet.json` endpoint exposed via `get_service_history` returns
+  `400 METHOD.NOT-SUPPORTED` for some panels (e.g. JA100F), so it is not a reliable
+  fallback.
+
+Minimal poller:
+
+```python
+sections = client.get_sections(service_id=sid)
+for event in sections["service-states"].get("events", []):
+    if event["type"] == "ALARM":
+        ...  # handle alarm
+```
