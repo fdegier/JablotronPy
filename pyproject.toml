@@ -1,5 +1,5 @@
 [build-system]
-requires = ["setuptools >= 77.0.3"]
+requires = ["setuptools >= 77.0.3", "setuptools-scm>=8"]
 build-backend = "setuptools.build_meta"
 
 [project]
@@ -8,12 +8,14 @@ description = "Client to interact with Jablotron Cloud API to control Jablotron 
 readme = "README.md"
 authors = [{ name = "F. de Gier", email = "freddegier@me.com" }]
 
-version = "0.7.3"
+dynamic = ["version"]
 requires-python = ">=3.10"
 dependencies = ["requests>=2.32.2"]
 
 [project.urls]
 Homepage = "https://github.com/fdegier/JablotronPy"
+
+[tool.setuptools_scm]
 
 [dependency-groups]
 dev = ["ruff>=0.14.10"]

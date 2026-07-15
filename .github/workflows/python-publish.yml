@@ -2,7 +2,7 @@ name: Release new package versions to Pypi
 
 on:
   release:
-    types: [ published ]
+    types: [published]
 
 jobs:
   publish:
@@ -11,11 +11,14 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.release.tag_name }}
+          fetch-depth: 0
 
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: '3.13'
+          python-version: "3.13"
 
       - name: Install dependencies
         run: |
@@ -24,6 +27,14 @@ jobs:
 
       - name: Build package
         run: python -m build
+
+      - name: Verify package version matches release tag
+        env:
+          RELEASE_TAG: ${{ github.event.release.tag_name }}
+        run: |
+          VERSION="${RELEASE_TAG#v}"
+          test -f "dist/jablotronpy-${VERSION}-py3-none-any.whl"
+          test -f "dist/jablotronpy-${VERSION}.tar.gz"
 
       - name: Publish package
         uses: pypa/gh-action-pypi-publish@release/v1
