@@ -2,6 +2,7 @@
 
 API_VERSION = "2.2"
 API_URL = f"https://api.jablonet.net/api/{API_VERSION}"
+GRAPHQL_URL = "https://graph.jablotron.cloud/graphql"
 HEADERS = {
     "x-vendor-id": "JABLOTRON:Jablotron",
     "x-client-version": "MYJ-PUB-ANDROID-15",

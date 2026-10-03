@@ -77,7 +77,7 @@ class TestJablotron(TestCase):
         # Do NOT validate 'programmableGates' property since it's optional in the response
         assert list(sections.keys()) == ["service-states", "states"]
 
-    @skip("Function is not supported - for me only?")
+    @skip("eventHistoryGet.json returns 400 METHOD.NOT-SUPPORTED for all accounts, use get_events() instead")
     def test_get_service_history(self):
         """Validate that get_service_history function works."""
 
@@ -92,6 +92,37 @@ class TestJablotron(TestCase):
             "section-name",
             "invoker-name",
             "invoker-type",
+        ]
+
+    def test_get_access_token(self):
+        """Validate that get_access_token function works."""
+
+        access_token = self.jablotron.get_access_token()
+
+        assert isinstance(access_token, str)
+        assert len(access_token) > 0
+
+    def test_get_events(self):
+        """Validate that get_events function works."""
+
+        services = self.jablotron.get_services()
+        service = services[0]
+        events = self.jablotron.get_events(
+            service_id=service["service-id"],
+            service_type=service["service-type"],
+        )
+
+        assert isinstance(events, list)
+        assert len(events) > 0
+        assert list(events[0].keys()) == [
+            "id",
+            "type",
+            "name",
+            "occurredAt",
+            "sources",
+            "invokers",
+            "subjects",
+            "icon",
         ]
 
     def test_control_section(self):

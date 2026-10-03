@@ -251,6 +251,85 @@ JablotronServiceHistoryEvent = TypedDict(
     },
 )
 
+# ===================================
+# ==== EVENT HISTORY (GraphQL) ====
+# ===================================
+
+JablotronAccessTokenResponse = TypedDict(
+    "JablotronAccessTokenResponse",
+    {
+        "access-token": str,
+        "access-token-expiration": str,
+    },
+)
+
+JablotronEventTranslation = TypedDict(
+    "JablotronEventTranslation",
+    {
+        "translation": str | None,
+    },
+)
+
+JablotronEventSource = TypedDict(
+    "JablotronEventSource",
+    {
+        "cloudEntityId": str,
+    },
+)
+
+JablotronEventActor = TypedDict(
+    "JablotronEventActor",
+    {
+        "__typename": str,
+        "cloudEntityId": str | None,
+        "name": str | None,
+        "defaultName": JablotronEventTranslation | None,
+    },
+)
+
+JablotronEventAttachmentFile = TypedDict(
+    "JablotronEventAttachmentFile",
+    {
+        "name": str,
+        "mimeType": str,
+        "downloadUrl": str,
+    },
+)
+
+JablotronEventAttachment = TypedDict(
+    "JablotronEventAttachment",
+    {
+        "id": str,
+        "type": str,
+        "occurredAt": str,
+        "files": list[JablotronEventAttachmentFile] | None,
+        "images": list[dict] | None,
+        "videos": list[dict] | None,
+    },
+)
+
+JablotronEvent = TypedDict(
+    "JablotronEvent",
+    {
+        "__typename": str,
+        "id": str,
+        "name": JablotronEventTranslation,
+        # e.g. "SECURITY_SYSTEM.CONTROL.SECTION_ARM", "SECURITY_SYSTEM.CONTROL.SECTION_DISARM".
+        "type": str,
+        # ISO-8601 UTC timestamp, e.g. "2026-09-15T06:57:44.000Z".
+        "occurredAt": str,
+        "sources": list[JablotronEventSource],
+        # Component/user that triggered the event (e.g. the keypad or app user).
+        "invokers": list[JablotronEventActor],
+        # Entity the event is about (e.g. the alarm section that was armed/disarmed).
+        "subjects": list[JablotronEventActor],
+        "icon": str | None,
+        "attachments": list[JablotronEventAttachment] | None,
+        # Present for events that group related sub-events (same shape minus attachments/childEvents).
+        "childEvents": list[dict] | None,
+    },
+)
+
 # =========================
 # ==== SECTION CONTROL ====
 # =========================
