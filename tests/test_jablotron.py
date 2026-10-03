@@ -115,14 +115,17 @@ class TestJablotron(TestCase):
         assert isinstance(events, list)
         assert len(events) > 0
         assert list(events[0].keys()) == [
+            "__typename",
             "id",
-            "type",
             "name",
+            "type",
             "occurredAt",
             "sources",
             "invokers",
             "subjects",
             "icon",
+            "attachments",
+            "childEvents",
         ]
 
     def test_control_section(self):
