@@ -7,7 +7,7 @@ from typing import Literal
 
 from requests import Response, post
 
-from jablotronpy.const import API_URL, HEADERS
+from jablotronpy.const import API_URL, GRAPHQL_URL, HEADERS
 from jablotronpy.exceptions import (
     BadRequestException,
     ControlActionException,
@@ -21,6 +21,7 @@ from jablotronpy.exceptions import (
 )
 from jablotronpy.types import (
     JablotronDeviceSchedule,
+    JablotronEvent,
     JablotronKeyboard,
     JablotronProgrammableGateControlResponse,
     JablotronProgrammableGates,
@@ -55,6 +56,55 @@ def _parse_retry_after(value: str | None) -> int | None:
         return None
 
     return max(0, int((retry_date - datetime.now(timezone.utc)).total_seconds()))
+
+
+# GraphQL query used by get_events(), matching what the official mobile app sends to
+# GRAPHQL_URL. Child-event fragments are kept minimal since control actions typically
+# don't nest further events.
+_GET_EVENTS_QUERY = (
+    "query GetEvents($cloudEntityId: CloudEntityID!, $pagination: Pagination, $lang: String!, "
+    "$filter: EventsFilter, $eventIdsEmpty: Boolean!, $eventIds: [ID!]!, $timeZoneAvailable: Boolean!) { "
+    "forEndUser { "
+    "endUserDeviceManagement @skip(if: $timeZoneAvailable) { "
+    "serviceSettings(params: { cloudEntityId: $cloudEntityId }) { timeZone } "
+    "} "
+    "events { "
+    "events(sources: [$cloudEntityId], pagination: $pagination, filter: $filter) { "
+    "edges { node { __typename ...EventsFragment } } "
+    "pageInfo { hasNextPage endCursor startCursor } "
+    "} "
+    "batchEvents(sources: [$cloudEntityId], eventIds: $eventIds) @skip(if: $eventIdsEmpty) { "
+    "__typename ...EventsFragment "
+    "} "
+    "} "
+    "} "
+    "} "
+    "fragment EventsInvokerFragment on EventsInvoker { "
+    "cloudEntityId defaultName { translation(lang: $lang) } name "
+    "} "
+    "fragment EventsSubjectFragment on EventsSubject { "
+    "name cloudEntityId defaultName { translation(lang: $lang) } "
+    "} "
+    "fragment EventsEventFragment on EventsEvent { "
+    "id name { translation(lang: $lang) } type occurredAt sources { cloudEntityId } "
+    "invokers { __typename ...EventsInvokerFragment } subjects { __typename ...EventsSubjectFragment } icon "
+    "} "
+    "fragment EventsFragment on EventsEvent { "
+    "__typename ...EventsEventFragment "
+    "attachments { __typename ...EventsAttachementFragment } "
+    "childEvents { "
+    "id name { translation(lang: $lang) } type occurredAt sources { cloudEntityId } "
+    "invokers { __typename ...EventsInvokerFragment } subjects { __typename ...EventsSubjectFragment } icon "
+    "attachments { __typename ...EventsAttachementFragment } "
+    "} "
+    "} "
+    "fragment EventsAttachementFragment on EventsAttachment { "
+    "files { name mimeType downloadUrl } "
+    "images { name mimeType downloadUrl available widthPx heightPx } "
+    "videos { name mimeType downloadUrl duration } "
+    "id type occurredAt "
+    "}"
+)
 
 
 class Jablotron:
@@ -329,6 +379,12 @@ class Jablotron:
 
         Returns last 20 events by default, but it can be configured using other params.
 
+        Note: this REST endpoint has stopped working for most accounts and now returns
+        a ``400 METHOD.NOT-SUPPORTED`` error regardless of the parameters passed (see
+        issue #24). Prefer :meth:`get_events`, which fetches the same kind of history
+        (including section arm/disarm events) through the GraphQL API that the official
+        mobile app uses instead.
+
         :param service_id: id of service to get history for
         :param date_from: date from which historical events should be fetched
         :param date_to: date to which historical events should be fetched
@@ -355,6 +411,96 @@ class Jablotron:
         response = self._send_request(endpoint=f"{service_type}/eventHistoryGet.json", payload=payload_json)
 
         return response.json().get("data", {}).get("events", [])
+
+    def get_access_token(self, force_renew: bool = False) -> str:
+        """Return a short-lived bearer token for the Jablotron GraphQL API.
+
+        This token is required to call :meth:`get_events` and is obtained through the
+        same authenticated session (cookie) as the rest of the REST API, so
+        :meth:`perform_login` must have been called first.
+
+        :param force_renew: request a new token even if the current session already has one
+        """
+
+        response = self._send_request(
+            endpoint="accessTokenGet.json",
+            payload={"force-renew": force_renew},
+        )
+        token = response.json().get("data", {}).get("access-token")
+        if not token:
+            raise JablotronApiException("accessTokenGet.json response did not contain an access-token.")
+
+        return token
+
+    def get_events(
+        self,
+        service_id: int,
+        service_type: str = "JA100F",
+        language: str = "en",
+        page_size: int = 20,
+        max_pages: int = 10,
+    ) -> list[JablotronEvent]:
+        """Return event history for a service via the GraphQL API, newest first.
+
+        The REST ``eventHistoryGet.json`` endpoint used by :meth:`get_service_history` no
+        longer works for most accounts. The official mobile app instead fetches event
+        history (including section arm/disarm events, with the invoking user and the
+        affected section) through a separate GraphQL API. This method replicates that
+        request, authenticating with a bearer token obtained via :meth:`get_access_token`.
+
+        The API rejects page sizes above roughly 20-24 with a generic "Request validation
+        failed" error, so pagination is handled automatically: pages are fetched until
+        either there are no more pages or ``max_pages`` is reached.
+
+        :param service_id: id of service to get events for
+        :param service_type: service type used to build the GraphQL cloud entity id
+            (e.g. ``JA100F``). This is unrelated to the ``service_type`` parameter used
+            by the REST endpoints, which defaults to ``JA100``.
+        :param language: language code used for the translated event name
+        :param page_size: events requested per GraphQL page (keep at or below 20)
+        :param max_pages: safety limit on the number of pages fetched
+        """
+
+        access_token = self.get_access_token()
+        cloud_entity_id = f"SERVICE_{service_type}:{service_id}"
+        headers = {
+            "x-vendor-id": self._headers["x-vendor-id"],
+            "Authorization": f"Bearer {access_token}",
+            "Content-Type": "application/json",
+        }
+
+        events: list[JablotronEvent] = []
+        after: str | None = None
+
+        for _ in range(max_pages):
+            variables = {
+                "cloudEntityId": cloud_entity_id,
+                "pagination": {"first": page_size, "after": after},
+                "lang": language,
+                "filter": {},
+                "eventIdsEmpty": True,
+                "eventIds": [],
+                "timeZoneAvailable": True,
+            }
+            response = post(
+                url=GRAPHQL_URL,
+                headers=headers,
+                json={"query": _GET_EVENTS_QUERY, "variables": variables},
+            )
+            body = response.json()
+
+            if body.get("errors"):
+                raise JablotronApiException(f"GraphQL request failed: {body['errors']}")
+
+            page = body["data"]["forEndUser"]["events"]["events"]
+            events.extend(edge["node"] for edge in page["edges"])
+
+            page_info = page["pageInfo"]
+            if not page_info["hasNextPage"]:
+                break
+            after = page_info["endCursor"]
+
+        return events
 
     def control_section(
         self,
