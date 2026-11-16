@@ -36,6 +36,10 @@ sections = client.get_sections(service_id=service_id)
 print(sections)
 ```
 
+Every request to the Jablotron Cloud API gives up after 30 seconds and raises `requests.Timeout`, so a
+hanging connection cannot block your application forever. Pass `request_timeout` to `Jablotron(...)` to
+change this.
+
 ## Methods
 
 The client offers a variation of data, here is a table of the methods and data it returns:
@@ -62,7 +66,7 @@ The client offers a variation of data, here is a table of the methods and data i
 Jablotron Cloud often answers `controlThermoDevice.json` with `502 Bad Gateway` after a few
 seconds, while the thermostat still applies the change 20-50 seconds later.
 `control_thermo_device` and `control_thermo_device_with_response` therefore treat a 502/504
-as "not confirmed yet": they poll `get_thermo_devices` every `confirm_interval` seconds
+(or a read timeout) as "not confirmed yet": they poll `get_thermo_devices` every `confirm_interval` seconds
 (default `3`) for up to `confirm_timeout` seconds (default `60`) and return as soon as the
 thermostat reflects the requested mode/temperature. If it does not, the original
 `BadGatewayException` (a subclass of `JablotronApiException`) is raised. Pass
