@@ -330,6 +330,16 @@ JablotronEvent = TypedDict(
     },
 )
 
+JablotronEventsPage = TypedDict(
+    "JablotronEventsPage",
+    {
+        "events": list[JablotronEvent],
+        "has-next-page": bool,
+        # Pass as `after` to get_events_page() to fetch the next page.
+        "end-cursor": str | None,
+    },
+)
+
 # =========================
 # ==== SECTION CONTROL ====
 # =========================

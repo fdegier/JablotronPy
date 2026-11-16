@@ -52,6 +52,7 @@ The client offers a variation of data, here is a table of the methods and data i
 | get_service_history       | Returns list of historical events for specified service (see note below)     |
 | get_access_token          | Returns a bearer token for the GraphQL API                                   |
 | get_events                | Returns event history (incl. arm/disarm) via the GraphQL API                 |
+| get_events_page           | Returns a single page of event history plus a cursor for the next page       |
 | control_section           | Sets specified section of specified service to desired state                 |
 | control_programmable_gate | Sets specified programmable gate of specified service to desired state       |
 
@@ -107,7 +108,8 @@ official app instead fetches event history through a separate GraphQL API
 section was armed/disarmed, by whom, and when):
 
 ```python
-events = client.get_events(service_id=service_id, service_type="JA100F")
+service = client.get_services()[0]
+events = client.get_events(service_id=service["service-id"], service_type=service["service-type"])
 for event in events:
     if event["type"] in ("SECURITY_SYSTEM.CONTROL.SECTION_ARM", "SECURITY_SYSTEM.CONTROL.SECTION_DISARM"):
         section = next((s["name"] for s in event["subjects"]), None)
@@ -117,11 +119,15 @@ for event in events:
 
 Notes:
 
-- `service_type` here is the panel type used to build the GraphQL entity id (e.g.
-  `JA100F`), which is unrelated to the `service_type` parameter on the REST endpoints
-  (which defaults to `JA100`). Use the `service-type` value from `get_services()`.
-- The API silently rejects page sizes above roughly 20-24 (`Request validation failed`
-  with no further detail), so `get_events` paginates internally and caps the number of
-  pages via `max_pages` (default `10`, i.e. up to ~200 events).
-- `get_access_token` can be called on its own if you need to talk to the GraphQL API
-  directly for something this library doesn't wrap yet.
+- `service_type` is required here and must be the panel type from the `service-type`
+  value of `get_services()` (e.g. `JA100F`). It is used to build the GraphQL entity id
+  and is unrelated to the `service_type` parameter on the REST endpoints (which defaults
+  to `JA100`).
+- The API rejects page sizes above roughly 20-24 (`Request validation failed` with no
+  further detail), so `page_size` is limited to 20 and `get_events` paginates internally.
+  It stops after `max_pages` pages (default `10`, i.e. up to 200 events); pass
+  `max_pages=None` for the complete history, or use `get_events_page` and its
+  `end-cursor` to paginate yourself.
+- The bearer token is cached and renewed automatically. `get_access_token` can be
+  called on its own if you need to talk to the GraphQL API directly for something this
+  library doesn't wrap yet.

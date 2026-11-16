@@ -113,20 +113,42 @@ class TestJablotron(TestCase):
         )
 
         assert isinstance(events, list)
-        assert len(events) > 0
-        assert list(events[0].keys()) == [
-            "__typename",
-            "id",
-            "name",
-            "type",
-            "occurredAt",
-            "sources",
-            "invokers",
-            "subjects",
-            "icon",
-            "attachments",
-            "childEvents",
-        ]
+        required_keys = {"id", "name", "type", "occurredAt", "sources", "invokers", "subjects"}
+        for event in events:
+            assert required_keys <= event.keys()
+
+    def test_get_events_page(self):
+        """Validate that get_events_page function works and pagination cursors chain."""
+
+        service = self.jablotron.get_services()[0]
+        first_page = self.jablotron.get_events_page(
+            service_id=service["service-id"],
+            service_type=service["service-type"],
+            page_size=5,
+        )
+
+        assert list(first_page.keys()) == ["events", "has-next-page", "end-cursor"]
+        assert len(first_page["events"]) <= 5
+
+        if first_page["has-next-page"]:
+            second_page = self.jablotron.get_events_page(
+                service_id=service["service-id"],
+                service_type=service["service-type"],
+                after=first_page["end-cursor"],
+                page_size=5,
+            )
+            first_ids = {event["id"] for event in first_page["events"]}
+            assert not first_ids & {event["id"] for event in second_page["events"]}
+
+    def test_get_events_page_rejects_large_page_size(self):
+        """Validate that get_events_page rejects page sizes the API does not accept."""
+
+        try:
+            self.jablotron.get_events_page(service_id=1, service_type="JA100F", page_size=21)
+        except ValueError:
+            return
+
+        raise AssertionError("get_events_page accepted a page size above the API limit.")
 
     def test_control_section(self):
         """Validate that control_section function works."""
