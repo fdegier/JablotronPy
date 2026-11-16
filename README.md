@@ -55,6 +55,19 @@ The client offers a variation of data, here is a table of the methods and data i
 | get_events_page           | Returns a single page of event history plus a cursor for the next page       |
 | control_section           | Sets specified section of specified service to desired state                 |
 | control_programmable_gate | Sets specified programmable gate of specified service to desired state       |
+| control_thermo_device     | Sets heating mode and/or temperature of specified thermo device              |
+
+## Thermostat control and 502 Bad Gateway
+
+Jablotron Cloud often answers `controlThermoDevice.json` with `502 Bad Gateway` after a few
+seconds, while the thermostat still applies the change 20-50 seconds later.
+`control_thermo_device` and `control_thermo_device_with_response` therefore treat a 502/504
+as "not confirmed yet": they poll `get_thermo_devices` every `confirm_interval` seconds
+(default `3`) for up to `confirm_timeout` seconds (default `60`) and return as soon as the
+thermostat reflects the requested mode/temperature. If it does not, the original
+`BadGatewayException` (a subclass of `JablotronApiException`) is raised. Pass
+`confirm_timeout=0` to raise immediately instead. Note that the call can block for up to
+`confirm_timeout` seconds.
 
 ## Detecting active alarms
 

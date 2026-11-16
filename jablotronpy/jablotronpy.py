@@ -3,12 +3,14 @@
 from datetime import datetime, timedelta, timezone
 from email.utils import parsedate_to_datetime
 import json
+import time
 from typing import Literal
 
 from requests import Response, post
 
 from jablotronpy.const import API_URL, GRAPHQL_MAX_PAGE_SIZE, GRAPHQL_URL, HEADERS
 from jablotronpy.exceptions import (
+    BadGatewayException,
     BadRequestException,
     ControlActionException,
     IncorrectPinCodeException,
@@ -182,6 +184,8 @@ class Jablotron:
                 raise UnauthorizedException("Failed to authenticate using entered credentials or session id expired.")
             case 408:
                 raise SessionExpiredException("Session expired, please re-login.")
+            case 502 | 504:
+                raise BadGatewayException(response.text)
             case 429:
                 raise TooManyRequestsException(
                     "Too many requests, API rate limit exceeded.",
@@ -731,6 +735,68 @@ class Jablotron:
 
         return response_body
 
+    @staticmethod
+    def _thermo_device_state_matches(
+        state: JablotronThermoDeviceState,
+        heating_mode: str | None,
+        temperature: float | None,
+    ) -> bool:
+        """Return whether thermo device state reflects the requested heating mode and temperature.
+
+        :param state: current state of the thermo device
+        :param heating_mode: requested heating mode or None if it was not changed
+        :param temperature: requested temperature or None if it was not changed
+        """
+
+        mode = state.get("mode")
+        if heating_mode == "OFF" and mode != "STAND_BY":
+            return False
+        # Turning heating ON restores the previous mode, which can be any mode except STAND_BY
+        if heating_mode == "ON" and mode in (None, "STAND_BY"):
+            return False
+        if heating_mode in ("MANUAL", "SCHEDULED") and mode != heating_mode:
+            return False
+
+        temperature_set = state.get("temperature-set")
+        return temperature is None or (temperature_set is not None and abs(temperature_set - temperature) < 0.01)
+
+    def _wait_for_thermo_device_state(
+        self,
+        service_id: int,
+        object_device_id: str,
+        heating_mode: str | None,
+        temperature: float | None,
+        service_type: str,
+        timeout: float,
+        interval: float,
+    ) -> JablotronThermoDeviceState | None:
+        """Poll thermo device until it reflects the requested change and return its state, or None on timeout.
+
+        :param service_id: id of service the thermo device belongs to
+        :param object_device_id: id of thermo device to poll
+        :param heating_mode: requested heating mode or None if it was not changed
+        :param temperature: requested temperature or None if it was not changed
+        :param service_type: type of service the thermo device belongs to
+        :param timeout: maximum number of seconds to wait
+        :param interval: number of seconds between polls
+        """
+
+        deadline = time.monotonic() + timeout
+        while True:
+            remaining = deadline - time.monotonic()
+            if remaining <= 0:
+                return None
+            time.sleep(min(interval, remaining))
+
+            try:
+                devices = self.get_thermo_devices(service_id, service_type)
+            except BadGatewayException:
+                continue
+
+            device = next((d for d in devices if d["object-device-id"] == object_device_id), None)
+            if device is not None and self._thermo_device_state_matches(device["state"], heating_mode, temperature):
+                return device["state"]
+
     def control_thermo_device_with_response(
         self,
         service_id: int,
@@ -738,14 +804,23 @@ class Jablotron:
         heating_mode: Literal["MANUAL", "SCHEDULED", "OFF", "ON"] | None = None,
         temperature: float | None = None,
         service_type: str = "JA100",
+        confirm_timeout: float = 60,
+        confirm_interval: float = 3,
     ) -> JablotronThermoDeviceState | None:
         """Set thermo device of specified service to desired heating mode and return the device's state.
+
+        Jablotron Cloud often answers this request with 502 Bad Gateway after a few seconds while
+        the change is still applied 20-50 seconds later. In that case the thermo device is polled
+        for up to ``confirm_timeout`` seconds and its state is returned once it reflects the
+        requested change. If it does not, the original :class:`BadGatewayException` is raised.
 
         :param service_id: id of service to control thermo device for
         :param object_device_id: id of thermo device to control
         :param heating_mode: heating mode to set or None to keep the current value
         :param temperature: temperature to set or None to keep the current value
         :param service_type: type of service to control thermo device for
+        :param confirm_timeout: seconds to wait for the change after a 502/504 response, 0 to raise immediately
+        :param confirm_interval: seconds between polls while waiting for the change
         """
 
         if heating_mode == "SCHEDULED" and temperature is not None:
@@ -760,18 +835,36 @@ class Jablotron:
         if temperature is not None:
             actions["set-temperature"] = temperature
 
-        response = self._send_request(
-            endpoint=f"{service_type}/controlThermoDevice.json",
-            payload={
-                "service-id": service_id,
-                "control-components": [
-                    {
-                        "actions": actions,
-                        "component-id": object_device_id,
-                    }
-                ],
-            },
-        )
+        try:
+            response = self._send_request(
+                endpoint=f"{service_type}/controlThermoDevice.json",
+                payload={
+                    "service-id": service_id,
+                    "control-components": [
+                        {
+                            "actions": actions,
+                            "component-id": object_device_id,
+                        }
+                    ],
+                },
+            )
+        except BadGatewayException:
+            if confirm_timeout <= 0:
+                raise
+
+            state = self._wait_for_thermo_device_state(
+                service_id,
+                object_device_id,
+                heating_mode,
+                temperature,
+                service_type,
+                confirm_timeout,
+                confirm_interval,
+            )
+            if state is None:
+                raise
+
+            return state
 
         response_body = response.json()
         response_data = response_body.get("data", {})
@@ -796,18 +889,24 @@ class Jablotron:
         heating_mode: Literal["MANUAL", "SCHEDULED", "OFF", "ON"] | None = None,
         temperature: float | None = None,
         service_type: str = "JA100",
+        confirm_timeout: float = 60,
+        confirm_interval: float = 3,
     ) -> bool:
         """Set thermo device of specified service to desired heating mode and return boolean when the change is successful.
+
+        See :meth:`control_thermo_device_with_response` for how 502 Bad Gateway responses are handled.
 
         :param service_id: id of service to control thermo device for
         :param object_device_id: id of thermo device to control
         :param heating_mode: heating mode to set or None to keep the current value
         :param temperature: temperature to set or None to keep the current value
         :param service_type: type of service to control thermo device for
+        :param confirm_timeout: seconds to wait for the change after a 502/504 response, 0 to raise immediately
+        :param confirm_interval: seconds between polls while waiting for the change
         """
 
         state = self.control_thermo_device_with_response(
-            service_id, object_device_id, heating_mode, temperature, service_type
+            service_id, object_device_id, heating_mode, temperature, service_type, confirm_timeout, confirm_interval
         )
         return state is not None
 
