@@ -17,6 +17,13 @@ class JablotronApiException(Exception):
     """Exception raised when request fails with unexpected status code."""
 
 
+class BadGatewayException(JablotronApiException):
+    """Exception raised when request fails with 502 or 504 status code.
+
+    The Jablotron Cloud gateway gave up waiting for the backend, so the requested action may still be applied.
+    """
+
+
 class TooManyRequestsException(JablotronApiException):
     """Exception raised when request fails with 429 status code."""
 
