@@ -20,6 +20,7 @@ JablotronPy is a Python client library for the Jablotron Cloud API (`api.jablone
 ### Testing caveats
 
 - All tests in `tests/test_jablotron.py` are **integration tests** against the live Jablotron Cloud API. They require real credentials set as environment variables: `TEST_JABLOTRON_USER`, `TEST_JABLOTRON_PASS`, `TEST_JABLOTRON_PIN`.
+- `test_control_section` disarms a real alarm section, so it is skipped unless `TEST_JABLOTRON_ALLOW_CONTROL=1` is set. Never set this unless the account owner explicitly asks for it.
 - Without these credentials, the test module fails to import (class-level `os.environ` lookups and `perform_login()` run at import time).
 - There are no mocks, fixtures, or local test doubles in the project.
 - The project does not use `pytest` — it uses stdlib `unittest`.

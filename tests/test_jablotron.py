@@ -1,7 +1,7 @@
 """Tests for Jablotron API integration."""
 
 import os
-from unittest import TestCase, skip
+from unittest import TestCase, skip, skipUnless
 
 from jablotronpy.jablotronpy import Jablotron
 
@@ -150,6 +150,10 @@ class TestJablotron(TestCase):
 
         raise AssertionError("get_events_page accepted a page size above the API limit.")
 
+    @skipUnless(
+        os.environ.get("TEST_JABLOTRON_ALLOW_CONTROL") == "1",
+        "Disarms a real alarm section; set TEST_JABLOTRON_ALLOW_CONTROL=1 to run it.",
+    )
     def test_control_section(self):
         """Validate that control_section function works."""
 

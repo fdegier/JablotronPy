@@ -7,8 +7,9 @@ import time
 from typing import Literal
 
 from requests import Response, post
+from requests.exceptions import ReadTimeout
 
-from jablotronpy.const import API_URL, GRAPHQL_MAX_PAGE_SIZE, GRAPHQL_URL, HEADERS
+from jablotronpy.const import API_URL, DEFAULT_REQUEST_TIMEOUT, GRAPHQL_MAX_PAGE_SIZE, GRAPHQL_URL, HEADERS
 from jablotronpy.exceptions import (
     BadGatewayException,
     BadRequestException,
@@ -139,17 +140,25 @@ _GET_EVENTS_QUERY = (
 class Jablotron:
     """Client for Jablotron Cloud API."""
 
-    def __init__(self, username: str, password: str, pin_code: str | None = None) -> None:
+    def __init__(
+        self,
+        username: str,
+        password: str,
+        pin_code: str | None = None,
+        request_timeout: float = DEFAULT_REQUEST_TIMEOUT,
+    ) -> None:
         """Initialize Jablotron Cloud API client.
 
         :param username: email address associated with Jablotron Cloud account
         :param password: password for Jablotron Cloud account
         :param pin_code: pin code to control alarm entities
+        :param request_timeout: seconds to wait for the Jablotron Cloud API before raising ``requests.Timeout``
         """
 
         self._username = username
         self._password = password
         self._pin_code = pin_code
+        self._request_timeout = request_timeout
         self._headers = HEADERS.copy()
         self._access_token: str | None = None
         self._access_token_expires_at: datetime | None = None
@@ -201,7 +210,7 @@ class Jablotron:
         :param payload: request payload
         """
 
-        response = post(url=f"{API_URL}/{endpoint}", headers=self._headers, json=payload)
+        response = post(url=f"{API_URL}/{endpoint}", headers=self._headers, json=payload, timeout=self._request_timeout)
 
         return self._check_response(response)
 
@@ -216,6 +225,7 @@ class Jablotron:
             url=f"{API_URL}/{endpoint}",
             headers={**self._headers, "Content-Type": "application/x-www-form-urlencoded; charset=utf-8"},
             data=payload,
+            timeout=self._request_timeout,
         )
 
         return self._check_response(response)
@@ -495,6 +505,7 @@ class Jablotron:
                     "Content-Type": "application/json",
                 },
                 json={"query": query, "variables": variables},
+                timeout=self._request_timeout,
             )
             if response.status_code != 401:
                 break
@@ -790,7 +801,7 @@ class Jablotron:
 
             try:
                 devices = self.get_thermo_devices(service_id, service_type)
-            except BadGatewayException:
+            except (BadGatewayException, ReadTimeout):
                 continue
 
             device = next((d for d in devices if d["object-device-id"] == object_device_id), None)
@@ -810,16 +821,17 @@ class Jablotron:
         """Set thermo device of specified service to desired heating mode and return the device's state.
 
         Jablotron Cloud often answers this request with 502 Bad Gateway after a few seconds while
-        the change is still applied 20-50 seconds later. In that case the thermo device is polled
-        for up to ``confirm_timeout`` seconds and its state is returned once it reflects the
-        requested change. If it does not, the original :class:`BadGatewayException` is raised.
+        the change is still applied 20-50 seconds later. In that case, or when no answer arrives
+        within the request timeout, the thermo device is polled for up to ``confirm_timeout``
+        seconds and its state is returned once it reflects the requested change. If it does not,
+        the original :class:`BadGatewayException` or ``requests.ReadTimeout`` is raised.
 
         :param service_id: id of service to control thermo device for
         :param object_device_id: id of thermo device to control
         :param heating_mode: heating mode to set or None to keep the current value
         :param temperature: temperature to set or None to keep the current value
         :param service_type: type of service to control thermo device for
-        :param confirm_timeout: seconds to wait for the change after a 502/504 response, 0 to raise immediately
+        :param confirm_timeout: seconds to wait for the change after a 502/504 or read timeout, 0 to raise immediately
         :param confirm_interval: seconds between polls while waiting for the change
         """
 
@@ -848,7 +860,8 @@ class Jablotron:
                     ],
                 },
             )
-        except BadGatewayException:
+        except (BadGatewayException, ReadTimeout):
+            # The request reached Jablotron Cloud but no answer came back in time, so the change may still be applied
             if confirm_timeout <= 0:
                 raise
 
@@ -894,14 +907,14 @@ class Jablotron:
     ) -> bool:
         """Set thermo device of specified service to desired heating mode and return boolean when the change is successful.
 
-        See :meth:`control_thermo_device_with_response` for how 502 Bad Gateway responses are handled.
+        See :meth:`control_thermo_device_with_response` for how 502 Bad Gateway responses and read timeouts are handled.
 
         :param service_id: id of service to control thermo device for
         :param object_device_id: id of thermo device to control
         :param heating_mode: heating mode to set or None to keep the current value
         :param temperature: temperature to set or None to keep the current value
         :param service_type: type of service to control thermo device for
-        :param confirm_timeout: seconds to wait for the change after a 502/504 response, 0 to raise immediately
+        :param confirm_timeout: seconds to wait for the change after a 502/504 or read timeout, 0 to raise immediately
         :param confirm_interval: seconds between polls while waiting for the change
         """
 
