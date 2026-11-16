@@ -77,7 +77,7 @@ class TestJablotron(TestCase):
         # Do NOT validate 'programmableGates' property since it's optional in the response
         assert list(sections.keys()) == ["service-states", "states"]
 
-    @skip("Function is not supported - for me only?")
+    @skip("eventHistoryGet.json returns 400 METHOD.NOT-SUPPORTED for all accounts, use get_events() instead")
     def test_get_service_history(self):
         """Validate that get_service_history function works."""
 
@@ -93,6 +93,62 @@ class TestJablotron(TestCase):
             "invoker-name",
             "invoker-type",
         ]
+
+    def test_get_access_token(self):
+        """Validate that get_access_token function works."""
+
+        access_token = self.jablotron.get_access_token()
+
+        assert isinstance(access_token, str)
+        assert len(access_token) > 0
+
+    def test_get_events(self):
+        """Validate that get_events function works."""
+
+        services = self.jablotron.get_services()
+        service = services[0]
+        events = self.jablotron.get_events(
+            service_id=service["service-id"],
+            service_type=service["service-type"],
+        )
+
+        assert isinstance(events, list)
+        required_keys = {"id", "name", "type", "occurredAt", "sources", "invokers", "subjects"}
+        for event in events:
+            assert required_keys <= event.keys()
+
+    def test_get_events_page(self):
+        """Validate that get_events_page function works and pagination cursors chain."""
+
+        service = self.jablotron.get_services()[0]
+        first_page = self.jablotron.get_events_page(
+            service_id=service["service-id"],
+            service_type=service["service-type"],
+            page_size=5,
+        )
+
+        assert list(first_page.keys()) == ["events", "has-next-page", "end-cursor"]
+        assert len(first_page["events"]) <= 5
+
+        if first_page["has-next-page"]:
+            second_page = self.jablotron.get_events_page(
+                service_id=service["service-id"],
+                service_type=service["service-type"],
+                after=first_page["end-cursor"],
+                page_size=5,
+            )
+            first_ids = {event["id"] for event in first_page["events"]}
+            assert not first_ids & {event["id"] for event in second_page["events"]}
+
+    def test_get_events_page_rejects_large_page_size(self):
+        """Validate that get_events_page rejects page sizes the API does not accept."""
+
+        try:
+            self.jablotron.get_events_page(service_id=1, service_type="JA100F", page_size=21)
+        except ValueError:
+            return
+
+        raise AssertionError("get_events_page accepted a page size above the API limit.")
 
     def test_control_section(self):
         """Validate that control_section function works."""

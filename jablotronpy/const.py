@@ -2,6 +2,9 @@
 
 API_VERSION = "2.2"
 API_URL = f"https://api.jablonet.net/api/{API_VERSION}"
+GRAPHQL_URL = "https://graph.jablotron.cloud/graphql"
+# The GraphQL API rejects event pages larger than roughly 20-24 with a generic validation error.
+GRAPHQL_MAX_PAGE_SIZE = 20
 HEADERS = {
     "x-vendor-id": "JABLOTRON:Jablotron",
     "x-client-version": "MYJ-PUB-ANDROID-15",

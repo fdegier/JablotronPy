@@ -49,7 +49,10 @@ The client offers a variation of data, here is a table of the methods and data i
 | get_thermo_devices        | Returns list of available thermo devices for specified service               |
 | get_keyboard_segments     | Returns list of available keyboards and their segments for specified service |
 | get_programmable_gates    | Returns available programmable gates and their states for specified service  |
-| get_service_history       | Returns list of historical events for specified service                      |
+| get_service_history       | Returns list of historical events for specified service (see note below)     |
+| get_access_token          | Returns a bearer token for the GraphQL API                                   |
+| get_events                | Returns event history (incl. arm/disarm) via the GraphQL API                 |
+| get_events_page           | Returns a single page of event history plus a cursor for the next page       |
 | control_section           | Sets specified section of specified service to desired state                 |
 | control_programmable_gate | Sets specified programmable gate of specified service to desired state       |
 
@@ -83,9 +86,9 @@ Notes:
   the next poll, you will miss it.
 - Observed `type` value: `"ALARM"`. Other types (tamper, sabotage, fault) likely exist but
   are not yet documented here.
-- The `JA100/eventHistoryGet.json` endpoint exposed via `get_service_history` returns
-  `400 METHOD.NOT-SUPPORTED` for some panels (e.g. JA100F), so it is not a reliable
-  fallback.
+- The `JA100/eventHistoryGet.json` endpoint exposed via `get_service_history` now returns
+  `400 METHOD.NOT-SUPPORTED` regardless of parameters, for every panel type. Use
+  `get_events` instead (see below).
 
 Minimal poller:
 
@@ -95,3 +98,36 @@ for event in sections["service-states"].get("events", []):
     if event["type"] == "ALARM":
         ...  # handle alarm
 ```
+
+## Event history (arm/disarm, etc.)
+
+`get_service_history` (the `eventHistoryGet.json` REST endpoint) has stopped working. The
+official app instead fetches event history through a separate GraphQL API
+(`https://graph.jablotron.cloud/graphql`), authenticated with a short-lived bearer token.
+`get_events` implements that flow and returns the same kind of data (including which
+section was armed/disarmed, by whom, and when):
+
+```python
+service = client.get_services()[0]
+events = client.get_events(service_id=service["service-id"], service_type=service["service-type"])
+for event in events:
+    if event["type"] in ("SECURITY_SYSTEM.CONTROL.SECTION_ARM", "SECURITY_SYSTEM.CONTROL.SECTION_DISARM"):
+        section = next((s["name"] for s in event["subjects"]), None)
+        invoker = next((i["name"] for i in event["invokers"]), None)
+        print(event["occurredAt"], event["type"], section, invoker)
+```
+
+Notes:
+
+- `service_type` is required here and must be the panel type from the `service-type`
+  value of `get_services()` (e.g. `JA100F`). It is used to build the GraphQL entity id
+  and is unrelated to the `service_type` parameter on the REST endpoints (which defaults
+  to `JA100`).
+- The API rejects page sizes above roughly 20-24 (`Request validation failed` with no
+  further detail), so `page_size` is limited to 20 and `get_events` paginates internally.
+  It stops after `max_pages` pages (default `10`, i.e. up to 200 events); pass
+  `max_pages=None` for the complete history, or use `get_events_page` and its
+  `end-cursor` to paginate yourself.
+- The bearer token is cached and renewed automatically. `get_access_token` can be
+  called on its own if you need to talk to the GraphQL API directly for something this
+  library doesn't wrap yet.
